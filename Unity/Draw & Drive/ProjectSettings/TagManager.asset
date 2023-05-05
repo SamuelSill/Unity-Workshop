@@ -11,9 +11,9 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
-  - 
+  - Background
+  - Object
+  - DrawLayer
   - 
   - 
   - 
@@ -38,6 +38,12 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Background
+    uniqueID: 1354929931
+    locked: 0
+  - name: Skidmarks
+    uniqueID: 1154377547
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0
