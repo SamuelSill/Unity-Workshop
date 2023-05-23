@@ -5,6 +5,7 @@ from pymongo.database import Database
 from pymongo.mongo_client import MongoClient
 from pymongo.collection import Collection
 from pymongo.server_api import ServerApi
+import gridfs
 
 from pydantic import BaseModel
 
@@ -14,6 +15,8 @@ mongo_db: Database = MongoClient(
     "mongodb+srv://DrawNDrive:3Q5Vnhvwdt7fwKGe@drawndrive.nvnngxr.mongodb.net/?retryWrites=true&w=majority",
     server_api=ServerApi('1')
 ).get_database("DrawNDrive")
+
+grid_fs: gridfs.GridFS = gridfs.GridFS(mongo_db)
 
 players_collection: Collection = mongo_db.get_collection("players")
 cars_collection: Collection = mongo_db.get_collection("cars")
@@ -80,9 +83,12 @@ def post_register(registration_form: RegistrationForm,
         "cars": [
             {
                 "id": "auto",
-                "upgrades": {}
+                "upgrades": {},
+                "skins": ["blue"],
+                "selected_skin": 0
             }
         ],
+        "selected_car": 0,
         "gallery": []
     })
 
@@ -104,6 +110,43 @@ def get_login(username: str,
 # endregion
 
 
+# region Player Statistics
+
+@app.get("/players/stats/money")
+def get_money(username: str,
+              password: str,
+              response: Response):
+    if (player_found := player(username, password)) is None:
+        return "Player Not Found!"
+
+    response.status_code = status.HTTP_200_OK
+    return player_found["money"]
+
+
+@app.get("/players/stats/games_lost")
+def get_games_lost(username: str,
+                   password: str,
+                   response: Response):
+    if (player_found := player(username, password)) is None:
+        return "Player Not Found!"
+
+    response.status_code = status.HTTP_200_OK
+    return player_found["games_lost"]
+
+
+@app.get("/players/stats/games_won")
+def get_games_won(username: str,
+                  password: str,
+                  response: Response):
+    if (player_found := player(username, password)) is None:
+        return "Player Not Found!"
+
+    response.status_code = status.HTTP_200_OK
+    return player_found["games_won"]
+
+# endregion
+
+
 # region Paintings
 
 
@@ -116,7 +159,13 @@ def get_paintings(username: str,
         return "Player Not Found!"
 
     response.status_code = status.HTTP_200_OK
-    return player_found["gallery"]
+    return [
+        {
+            **painting,
+            "data": list(grid_fs.get(painting["data"]).read())
+        }
+        for painting in player_found["gallery"]
+    ]
 
 
 class NewPainting(BaseModel):
@@ -139,7 +188,7 @@ def post_paintings(username: str,
         "$push": {
             "gallery": {
                 "name": new_painting.name,
-                "data": new_painting.data,
+                "data": grid_fs.put(bytes(new_painting.data)),
                 "description": new_painting.description,
                 "difficulty": generated_difficulty
             }
@@ -187,16 +236,6 @@ def buy_car(username: str,
         response.status_code = status.HTTP_409_CONFLICT
         return "Car too Expensive!"
 
-    player_found["money"] -= car_found["price"]
-
-    player_found["cars"].append({
-        "id": car_id,
-        "upgrades": {
-            upgrade["id"]: 0
-            for upgrade in car_found["upgrades"]
-        }
-    })
-
     players_collection.update_one({"username": username}, {
         "$push": {
             "cars": {
@@ -206,11 +245,77 @@ def buy_car(username: str,
                     for upgrade in car_found["upgrades"]
                 }
             }
+        },
+        "$inc": {
+            "money": -car_found["price"]
         }
     })
 
     response.status_code = status.HTTP_200_OK
     return "Car Purchased"
+
+
+@app.put("/players/cars",
+         status_code=status.HTTP_404_NOT_FOUND)
+def select_car(username: str,
+               password: str,
+               car_index: int,
+               response: Response):
+    if (player_found := player(username, password)) is None:
+        return "Player Not Found!"
+
+    if car_index < 0 or car_index >= len(player_found["cars"]):
+        response.status_code = status.HTTP_409_CONFLICT
+        return "Invalid Car Index!"
+
+    players_collection.update_one({"username": username}, {
+        "$set": {
+            "selected_car": car_index
+        }
+    })
+
+    response.status_code = status.HTTP_200_OK
+    return "Car Selected"
+
+
+@app.get("/players/cars/selected",
+         status_code=status.HTTP_404_NOT_FOUND)
+def get_selected_car(username: str,
+                     password: str,
+                     response: Response):
+    if (player_found := player(username, password)) is None:
+        return "Player Not Found!"
+
+    response.status_code = status.HTTP_200_OK
+    return player_found["selected_car"]
+
+
+@app.put("/players/cars/skins",
+         status_code=status.HTTP_404_NOT_FOUND)
+def select_car_skin(username: str,
+                    password: str,
+                    car_index: int,
+                    skin_index: int,
+                    response: Response):
+    if (player_found := player(username, password)) is None:
+        return "Player Not Found!"
+
+    if car_index < 0 or car_index >= len(player_found["cars"]):
+        response.status_code = status.HTTP_409_CONFLICT
+        return "Invalid Car Index!"
+
+    if skin_index < 0 or skin_index >= len(player_found["cars"][car_index]["skins"]):
+        response.status_code = status.HTTP_409_CONFLICT
+        return "Invalid Skin Index!"
+
+    players_collection.update_one({"username": username}, {
+        "$set": {
+            f"cars.{car_index}.selected_skin": skin_index
+        }
+    })
+
+    response.status_code = status.HTTP_200_OK
+    return "Skin Selected"
 
 
 @app.put("/players/cars/upgrades",
@@ -229,13 +334,13 @@ def upgrade_car(username: str,
     if upgrade_pricing := next((car_upgrade["pricing"]
                                 for car_upgrade in car_found["upgrades"]
                                 if car_upgrade["id"] == upgrade_id),
-                               __default=None) is None:
+                               None) is None:
         return "Upgrade Not Found!"
 
     if owned_car := next((owned_car
                           for owned_car in player_found["cars"]
                           if owned_car["id"] == car_id),
-                         __default=None):
+                         None):
         response.status_code = status.HTTP_409_CONFLICT
         return "Given Player Doesn't Own the Car!"
 
@@ -274,13 +379,13 @@ def buy_car_skin(username: str,
     if skin_price := next((car_skin["price"]
                            for car_skin in car_found["skins"]
                            if car_skin["id"] == skin_id),
-                          __default=None) is None:
+                          None) is None:
         return "Skin Not Found!"
 
     if owned_car := next((owned_car
                           for owned_car in player_found["cars"]
                           if owned_car["id"] == car_id),
-                         __default=None) is None:
+                         None) is None:
         response.status_code = status.HTTP_409_CONFLICT
         return "Given Player Doesn't Own the Car!"
 
@@ -429,7 +534,7 @@ def add_achievement(username: str,
 
 def run_server():
     from uvicorn import run
-    run(app, port=9583)
+    run(app, port=5555)
 
 
 if __name__ == '__main__':
