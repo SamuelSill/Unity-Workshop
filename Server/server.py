@@ -39,7 +39,7 @@ def car(car_id: str) -> Optional[dict[str, ...]]:
     })
 
 
-def generate_difficulty(_: list[list[int]]) -> float:
+def generate_difficulty(_: list[int]) -> float:
     from random import random
     # TODO: Difficulty Algorithm and Machine Learning
 
@@ -68,7 +68,7 @@ def post_register(registration_form: RegistrationForm,
 
     response.status_code = status.HTTP_200_OK
 
-    return players_collection.insert_one({
+    players_collection.insert_one({
         "username": registration_form.username,
         "password": registration_form.password,
         "first_name": registration_form.first_name,
@@ -85,6 +85,8 @@ def post_register(registration_form: RegistrationForm,
         ],
         "gallery": []
     })
+
+    return "Success"
 
 
 @app.get("/players/login",
@@ -119,7 +121,7 @@ def get_paintings(username: str,
 
 class NewPainting(BaseModel):
     name: str
-    data: list[list[int]]
+    data: list[int]
     description: str
 
 
@@ -129,21 +131,24 @@ def post_paintings(username: str,
                    password: str,
                    new_painting: NewPainting,
                    response: Response):
-    if (player_found := player(username, password)) is None:
+    if player(username, password) is None:
         return "Player Not Found!"
 
-    player_found["gallery"].append({
-        "name": new_painting.name,
-        "data": new_painting.data,
-        "description": new_painting.description,
-        "difficulty": generate_difficulty(new_painting.data)
+    generated_difficulty: float = generate_difficulty(new_painting.data)
+    players_collection.update_one({"username": username}, {
+        "$push": {
+            "gallery": {
+                "name": new_painting.name,
+                "data": new_painting.data,
+                "description": new_painting.description,
+                "difficulty": generated_difficulty
+            }
+        }
     })
-
-    players_collection.update_one({"username": username}, player_found)
 
     response.status_code = status.HTTP_200_OK
 
-    return "Painting Added Successfully!"
+    return generated_difficulty
 
 # endregion
 
@@ -192,7 +197,17 @@ def buy_car(username: str,
         }
     })
 
-    players_collection.update_one({"username": username}, player_found)
+    players_collection.update_one({"username": username}, {
+        "$push": {
+            "cars": {
+                "id": car_id,
+                "upgrades": {
+                    upgrade["id"]: 0
+                    for upgrade in car_found["upgrades"]
+                }
+            }
+        }
+    })
 
     response.status_code = status.HTTP_200_OK
     return "Car Purchased"
@@ -232,10 +247,12 @@ def upgrade_car(username: str,
         response.status_code = status.HTTP_409_CONFLICT
         return "Upgrade too Expensive!"
 
-    player_found["money"] -= upgrade_pricing[owned_car["upgrades"][upgrade_id]]
-    owned_car["upgrades"][upgrade_id] += 1
-
-    players_collection.update_one({"username": username}, player_found)
+    players_collection.update_one({"username": username}, {
+        "$inc": {
+            "money": -upgrade_pricing[owned_car["upgrades"][upgrade_id]],
+            f"upgrades.{upgrade_id}": 1
+        }
+    })
 
     response.status_code = status.HTTP_200_OK
     return "Upgrade Purchased"
@@ -263,7 +280,7 @@ def buy_car_skin(username: str,
     if owned_car := next((owned_car
                           for owned_car in player_found["cars"]
                           if owned_car["id"] == car_id),
-                         __default=None):
+                         __default=None) is None:
         response.status_code = status.HTTP_409_CONFLICT
         return "Given Player Doesn't Own the Car!"
 
@@ -275,10 +292,14 @@ def buy_car_skin(username: str,
         response.status_code = status.HTTP_409_CONFLICT
         return "Skin too Expensive!"
 
-    player_found["money"] -= skin_price
-    owned_car["skins"].append(skin_id)
-
-    players_collection.update_one({"username": username}, player_found)
+    players_collection.update_one({"username": username}, {
+        "$inc": {
+            "money": -skin_price
+        },
+        "$push": {
+            f"cars.{player_found['cars'].index(owned_car)}.skins": skin_id
+        }
+    })
 
     response.status_code = status.HTTP_200_OK
     return "Upgrade Purchased"
@@ -287,6 +308,19 @@ def buy_car_skin(username: str,
 
 
 # region Player Friends
+
+
+@app.get("/players/friends",
+         status_code=status.HTTP_404_NOT_FOUND)
+def get_friends(username: str,
+                password: str,
+                response: Response):
+    if (player_found := player(username, password)) is None:
+        return "Player Not Found!"
+
+    response.status_code = status.HTTP_200_OK
+
+    return player_found["friends"]
 
 
 @app.post("/players/friends",
@@ -305,12 +339,12 @@ def add_friend(username: str,
         response.status_code = status.HTTP_409_CONFLICT
         return "Players are Already Friends!"
 
-    player_found["friends"].append(friend_username)
-
-    players_collection.update_one({"username": username}, player_found)
+    players_collection.update_one({"username": username}, {
+        "$push": {"friends": friend_username}
+    })
 
     response.status_code = status.HTTP_200_OK
-    return "Car Purchased"
+    return "Added Friend"
 
 
 @app.delete("/players/friends",
@@ -329,12 +363,12 @@ def remove_friend(username: str,
         response.status_code = status.HTTP_409_CONFLICT
         return "Players are not Friends!"
 
-    player_found["friends"].remove(friend_username)
-
-    players_collection.update_one({"username": username}, player_found)
+    players_collection.update_one({"username": username}, {
+        "$pull": {"friends": friend_username}
+    })
 
     response.status_code = status.HTTP_200_OK
-    return "Car Purchased"
+    return "Removed Friend"
 
 
 # endregion
@@ -353,18 +387,17 @@ def add_new_game(username: str,
                  password: str,
                  new_game: NewGame,
                  response: Response):
-    if (player_found := player(username, password)) is None:
+    if player(username, password) is None:
         return "Player Not Found!"
 
     response.status_code = status.HTTP_200_OK
 
-    player_found["sum_accuracy"] += new_game.accuracy
-    if new_game.win:
-        player_found["games_won"] += 1
-    else:
-        player_found["games_lost"] += 1
-
-    players_collection.update_one({"username": username}, player_found)
+    players_collection.update_one({"username": username}, {
+        "$inc": {
+            ("games_won" if new_game.win else "games_lost"): 1,
+            "sum_accuracy": new_game.accuracy
+        }
+    })
 
     return "New Game Saved"
 
@@ -376,17 +409,16 @@ def add_achievement(username: str,
                     achievement_id: str,
                     response: Response):
     from time import strftime
-    if (player_found := player(username, password)) is None:
+    if player(username, password) is None:
         return "Player Not Found!"
 
     response.status_code = status.HTTP_200_OK
 
-    player_found["achievements"].append({
-        "id": achievement_id,
-        "time": strftime("%d/%m/%Y %H:%M:%S")
+    players_collection.update_one({"username": username}, {
+        "$push": {
+            "achievements": {"id": achievement_id, "time": strftime("%d/%m/%Y %H:%M:%S")}
+        }
     })
-
-    players_collection.update_one({"username": username}, player_found)
 
     return "Achievement Saved"
 
