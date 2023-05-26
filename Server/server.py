@@ -112,7 +112,8 @@ def get_login(username: str,
 
 # region Player Statistics
 
-@app.get("/players/stats/money")
+@app.get("/players/stats/money",
+         status_code=status.HTTP_404_NOT_FOUND)
 def get_money(username: str,
               password: str,
               response: Response):
@@ -123,7 +124,8 @@ def get_money(username: str,
     return player_found["money"]
 
 
-@app.get("/players/stats/games_lost")
+@app.get("/players/stats/games_lost",
+         status_code=status.HTTP_404_NOT_FOUND)
 def get_games_lost(username: str,
                    password: str,
                    response: Response):
@@ -134,7 +136,8 @@ def get_games_lost(username: str,
     return player_found["games_lost"]
 
 
-@app.get("/players/stats/games_won")
+@app.get("/players/stats/games_won",
+         status_code=status.HTTP_404_NOT_FOUND)
 def get_games_won(username: str,
                   password: str,
                   response: Response):
@@ -204,6 +207,16 @@ def post_paintings(username: str,
 
 # region Player Cars
 
+@app.get("/cars")
+def get_game_cars():
+    result: list[dict[str, ...]] = []
+    for game_car in cars_collection.find():
+        result_car: dict[str, ...] = {**game_car}
+        result_car.pop("_id")
+        result.append(result_car)
+    return result
+
+
 @app.get("/players/cars",
          status_code=status.HTTP_404_NOT_FOUND)
 def get_player_cars(username: str,
@@ -243,7 +256,11 @@ def buy_car(username: str,
                 "upgrades": {
                     upgrade["id"]: 0
                     for upgrade in car_found["upgrades"]
-                }
+                },
+                "skins": [
+                    car_found["skins"][0]["id"]
+                ],
+                "selected_skin": 0
             }
         },
         "$inc": {

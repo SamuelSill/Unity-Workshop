@@ -24,8 +24,7 @@ public class PanelCloser : MonoBehaviour
 
             if (!RectTransformUtility.RectangleContainsScreenPoint(panelRectTransform, mousePosition))
             {
-                panel.SetActive(false);
-                isPanelOpen = false;
+                PanelClosed();
             }
         }
     }
@@ -34,5 +33,11 @@ public class PanelCloser : MonoBehaviour
     {
         panel.SetActive(true);
         isPanelOpen = true;
+    }
+
+    public void PanelClosed()
+    {
+        panel.SetActive(false);
+        isPanelOpen = false;
     }
 }

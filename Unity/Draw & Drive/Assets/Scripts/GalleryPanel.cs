@@ -56,9 +56,9 @@ public class GalleryPanel : MonoBehaviour
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
-            var friendsList = JsonUtility.FromJson<JsonPaintings>($"{{\"paintings\": {getRequest.downloadHandler.text}}}");
+            var paintings = JsonUtility.FromJson<JsonPaintings>($"{{\"paintings\": {getRequest.downloadHandler.text}}}");
 
-            foreach (var painting in friendsList.paintings)
+            foreach (var painting in paintings.paintings)
             {
                 Texture2D texture = new Texture2D(width, height);
                 byte[] data = new byte[painting.data.Count];

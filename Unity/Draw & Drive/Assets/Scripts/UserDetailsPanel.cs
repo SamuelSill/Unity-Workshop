@@ -9,6 +9,8 @@ public class UserDetailsPanel : MonoBehaviour
     public TMP_Text usernameText;
     public TMP_Text moneyText;
 
+    private static int money = 0;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -23,12 +25,28 @@ public class UserDetailsPanel : MonoBehaviour
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
-            moneyText.text = getRequest.downloadHandler.text + "$";
+            money = int.Parse(getRequest.downloadHandler.text);
         }
     }
 
     // Update is called once per frame
     void Update()
     {
+        moneyText.text = $"{money}$";
+    }
+
+    public static void Buy(int price)
+    {
+        money -= price;
+    }
+
+    public static void Earn(int price)
+    {
+        money += price;
+    }
+
+    public static bool CanBuy(int price)
+    {
+        return money >= price;
     }
 }

@@ -18,14 +18,25 @@ public class CarView : MonoBehaviour
     private int selectedCarIndex;
     private List<PlayerCar> ownedCars;
 
-    private Dictionary<string, Sprite> idToSpriteMap;
+    private static Dictionary<string, Sprite> idToSpriteMap;
+
+    public static Sprite GetCarSprite(string carType, string carSkin)
+    {
+        return idToSpriteMap[$"{carType}.{carSkin}"];
+    }
 
     // Start is called before the first frame update
-    void Start()
+    public void Start()
     {
-        idToSpriteMap = new Dictionary<string, Sprite>();
-        idToSpriteMap["auto.blue"] = blueAutoCarSprite;
-        idToSpriteMap["auto.red"] = redAutoCarSprite;
+        if (idToSpriteMap == null)
+        {
+            idToSpriteMap = new()
+            {
+                ["auto.blue"] = blueAutoCarSprite,
+                ["auto.red"] = redAutoCarSprite
+            };
+        }
+
         StartCoroutine(GetCars());
     }
 
@@ -142,7 +153,7 @@ public class CarView : MonoBehaviour
 
     void ShowSelectedCar()
     {
-        selectedCarObject.GetComponent<Image>().sprite = idToSpriteMap[$"{ownedCars[selectedCarIndex].id}.{ownedCars[selectedCarIndex].skins[ownedCars[selectedCarIndex].selected_skin]}"];
+        selectedCarObject.GetComponent<Image>().sprite = GetCarSprite(ownedCars[selectedCarIndex].id, ownedCars[selectedCarIndex].skins[ownedCars[selectedCarIndex].selected_skin]);
         selectedCarType.text = ownedCars[selectedCarIndex].id;
         selectedCarUpgrades.text = 
             "Speed: " + ownedCars[selectedCarIndex].upgrades.speed.ToString() + "\n" +
