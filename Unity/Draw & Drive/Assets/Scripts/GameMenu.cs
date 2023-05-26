@@ -8,7 +8,6 @@ public class GameMenu : MonoBehaviour
 {
     public string savedCredentialsFilename;
     public string logOutScene;
-    public string garageScene;
 
     // Start is called before the first frame update
     void Start()
@@ -28,10 +27,5 @@ public class GameMenu : MonoBehaviour
         if (File.Exists(destination)) File.Delete(destination);
 
         SceneManager.LoadScene(logOutScene);
-    }
-
-    public void Garage()
-    {
-        SceneManager.LoadScene(garageScene);
     }
 }

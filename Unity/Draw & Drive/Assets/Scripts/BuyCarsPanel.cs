@@ -63,11 +63,11 @@ public class BuyCarsPanel : MonoBehaviour
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
             var cars = JsonUtility.FromJson<Cars>($"{{\"cars\": {getRequest.downloadHandler.text}}}");
-
+            var carViewComponent = carView.GetComponent<CarView>();
             foreach (var car in cars.cars)
             {
                 var newObject = Instantiate(carToBuyPrefab, transform);
-                newObject.GetComponent<CarToBuy>().SetCarToBuy(car, carView.GetComponent<CarView>());
+                newObject.GetComponent<CarToBuy>().SetCarToBuy(car, carViewComponent, carViewComponent.IsCarOwned(car.id));
             }
         }
     }

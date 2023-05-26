@@ -13,7 +13,6 @@ public class LoginMenu : MonoBehaviour
     public static string serverURL = "localhost:5555";
     public string serverConnectionErrorMessage = "SERVER CONNECTION ERROR";
     public string failedLoginMessage = "INVALID USERNAME OR PASSWORD";
-    public string backScene;
     public string gameScene;
     public string savedCredentialsFilename;
     public TMP_InputField usernameField;
@@ -34,11 +33,6 @@ public class LoginMenu : MonoBehaviour
     void Update()
     {
         
-    }
-
-    public void Back()
-    {
-        SceneManager.LoadScene(backScene);
     }
 
     IEnumerator GetRequest(string username, string password)

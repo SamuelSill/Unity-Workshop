@@ -9,6 +9,7 @@ public class CarToBuy : MonoBehaviour
 {
     public TMP_Text carType;
     public TMP_Text carPriceText;
+    public TMP_Text carSpecialMessage;
     public GameObject buyButton;
 
     private int carPriceNumber;
@@ -26,14 +27,31 @@ public class CarToBuy : MonoBehaviour
         
     }
 
-    public void SetCarToBuy(BuyCarsPanel.Car car, CarView newCarView)
+    public void SetCarToBuy(BuyCarsPanel.Car car, CarView newCarView, bool isCarOwned)
     {
         carView = newCarView;
 
         carType.text = car.id;
         carPriceText.text = $"{car.price}$";
         carPriceNumber = car.price;
-        GetComponent<Image>().sprite = CarView.GetCarSprite(car.id, car.skins[0].id);
+
+        var image = GetComponent<Image>();
+        image.sprite = CarView.GetCarSprite(car.id, car.skins[0].id);
+
+        if (!UserDetailsPanel.CanBuy(carPriceNumber) || isCarOwned)
+        {
+            DisableBuying(isCarOwned ? "PURCHASED" : "CAN'T AFFORD");
+        }
+    }
+
+    void DisableBuying(string message)
+    {
+        var image = GetComponent<Image>();
+        var tempColor = image.color;
+        tempColor.a = 127f;
+        image.color = tempColor;
+        carSpecialMessage.text = message;
+        buyButton.SetActive(false);
     }
 
     public void BuyCar()
@@ -54,7 +72,7 @@ public class CarToBuy : MonoBehaviour
         if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
         {
             UserDetailsPanel.Buy(carPriceNumber);
-            Destroy(gameObject);
+            DisableBuying("PURCHASED");
             carView.Start();
         }
     }

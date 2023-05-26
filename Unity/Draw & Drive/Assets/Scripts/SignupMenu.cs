@@ -9,7 +9,6 @@ public class SignupMenu : MonoBehaviour
 {
     public string serverURL = "localhost:5555";
     public string nextScene;
-    public string backScene;
     public string passwordMismatchMessage = "Passwords Don't Match!";
     public string serverConnectionErrorMessage = "Server Connection Error!";
     public TMP_InputField firstNameField;
@@ -72,10 +71,5 @@ public class SignupMenu : MonoBehaviour
         }
 
         StartCoroutine(PostRequest(usernameField.text, passwordField.text, firstNameField.text, lastNameField.text));
-    }
-
-    public void Back()
-    {
-        SceneManager.LoadScene(backScene);
     }
 }

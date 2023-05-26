@@ -139,6 +139,11 @@ public class CarView : MonoBehaviour
         }
     }
 
+    public bool IsCarOwned(string carId)
+    {
+        return ownedCars.Exists(currentCar => currentCar.id == carId);
+    }
+
     IEnumerator NotifySelectedSkin(int newSkinIndex)
     {
         UnityWebRequest getRequest = UnityWebRequest.Put($"{LoginMenu.serverURL}/players/cars/skins?username={LoginMenu.loggedUsername}&password={LoginMenu.loggedPassword}&car_index={selectedCarIndex}&skin_index={newSkinIndex}", "");

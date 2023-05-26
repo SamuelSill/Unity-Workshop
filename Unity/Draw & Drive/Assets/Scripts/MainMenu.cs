@@ -8,9 +8,6 @@ using UnityEngine.SceneManagement;
 
 public class MainMenu : MonoBehaviour
 {
-    public string loginScene;
-    public string signupScene;
-    public string aboutScene;
     public string gameScene;
     public string credentialsFile;
 
@@ -54,23 +51,8 @@ public class MainMenu : MonoBehaviour
         {
             SceneManager.LoadScene(gameScene);
             LoginMenu.loggedUsername = username;
-            LoginMenu.loggedPassword= password;
+            LoginMenu.loggedPassword = password;
         }
-    }
-
-    public void Login()
-    {
-        SceneManager.LoadScene(loginScene);
-    }
-
-    public void Signup()
-    {
-        SceneManager.LoadScene(signupScene);
-    }
-
-    public void About()
-    {
-        SceneManager.LoadScene(aboutScene);
     }
 
     public void Exit()
