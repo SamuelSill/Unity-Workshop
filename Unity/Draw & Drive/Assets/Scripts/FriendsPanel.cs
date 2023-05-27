@@ -1,8 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Networking;
 
 public class FriendsPanel : MonoBehaviour
 {
@@ -13,30 +10,9 @@ public class FriendsPanel : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        StartCoroutine(GetFriends());
-    }
-
-    [System.Serializable]
-    class JsonFriends
-    {
-        public string[] names;
-    }
-
-    IEnumerator GetFriends()
-    {
-        UnityWebRequest getRequest = UnityWebRequest.Get($"{LoginMenu.serverURL}/players/friends?username={LoginMenu.loggedUsername}&password={LoginMenu.loggedPassword}");
-        yield return getRequest.SendWebRequest();
-
-        if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
+        foreach (var friend in ServerSession.Friends)
         {
-            var friendsList = JsonUtility.FromJson<JsonFriends>($"{{\"names\": {getRequest.downloadHandler.text}}}");
-
-            foreach (var friend in friendsList.names)
-            {
-                var newObject = Instantiate(friendPrefab, grid.transform);
-                newObject.GetComponent<FriendButton>().usernameButton.text = friend;
-                newObject.GetComponent<FriendButton>().friendObject = newObject;
-            }
+            DisplayFriend(friend);
         }
     }
 
@@ -46,21 +22,15 @@ public class FriendsPanel : MonoBehaviour
         
     }
 
-    public void AddFriend()
+    void DisplayFriend(string friendUsername)
     {
-        StartCoroutine(PostFriend(friendToAddField.text));
+        var newObject = Instantiate(friendPrefab, grid.transform);
+        newObject.GetComponent<FriendButton>().usernameButton.text = friendUsername;
+        newObject.GetComponent<FriendButton>().friendObject = newObject;
     }
 
-    IEnumerator PostFriend(string username)
+    public void AddFriend()
     {
-        UnityWebRequest getRequest = UnityWebRequest.Post($"{LoginMenu.serverURL}/players/friends?username={LoginMenu.loggedUsername}&password={LoginMenu.loggedPassword}&friend_username={username}", "");
-        yield return getRequest.SendWebRequest();
-
-        if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
-        {
-            var newObject = Instantiate(friendPrefab, grid.transform);
-            newObject.GetComponent<FriendButton>().usernameButton.text = username;
-            newObject.GetComponent<FriendButton>().friendObject = newObject;
-        }
+        ServerSession.AddNewFriend(friendToAddField.text, () => DisplayFriend(friendToAddField.text));
     }
 }

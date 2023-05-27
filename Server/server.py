@@ -254,7 +254,7 @@ def buy_car(username: str,
             "cars": {
                 "id": car_id,
                 "upgrades": {
-                    upgrade["id"]: 0
+                    upgrade: 0
                     for upgrade in car_found["upgrades"]
                 },
                 "skins": [
@@ -348,30 +348,27 @@ def upgrade_car(username: str,
     if (car_found := car(car_id)) is None:
         return "Car Not Found!"
 
-    if upgrade_pricing := next((car_upgrade["pricing"]
-                                for car_upgrade in car_found["upgrades"]
-                                if car_upgrade["id"] == upgrade_id),
-                               None) is None:
+    if upgrade_id not in ("speed", "steering", "thickness"):
         return "Upgrade Not Found!"
 
-    if owned_car := next((owned_car
-                          for owned_car in player_found["cars"]
-                          if owned_car["id"] == car_id),
-                         None):
+    if (owned_car := next((owned_car
+                           for owned_car in player_found["cars"]
+                           if owned_car["id"] == car_id),
+                          None)) is None:
         response.status_code = status.HTTP_409_CONFLICT
         return "Given Player Doesn't Own the Car!"
 
-    if owned_car["upgrades"][upgrade_id] == len(upgrade_pricing):
+    if owned_car["upgrades"][upgrade_id] == len(car_found["upgrades"][upgrade_id]):
         response.status_code = status.HTTP_409_CONFLICT
         return "Car Already Upgraded to the Max!"
 
-    if player_found["money"] < upgrade_pricing[owned_car["upgrades"][upgrade_id]]:
+    if player_found["money"] < car_found["upgrades"][upgrade_id][owned_car["upgrades"][upgrade_id]]:
         response.status_code = status.HTTP_409_CONFLICT
         return "Upgrade too Expensive!"
 
     players_collection.update_one({"username": username}, {
         "$inc": {
-            "money": -upgrade_pricing[owned_car["upgrades"][upgrade_id]],
+            "money": -car_found["upgrades"][upgrade_id][owned_car["upgrades"][upgrade_id]],
             f"upgrades.{upgrade_id}": 1
         }
     })
@@ -393,16 +390,16 @@ def buy_car_skin(username: str,
     if (car_found := car(car_id)) is None:
         return "Car Not Found!"
 
-    if skin_price := next((car_skin["price"]
-                           for car_skin in car_found["skins"]
-                           if car_skin["id"] == skin_id),
-                          None) is None:
+    if (skin_price := next((car_skin["price"]
+                            for car_skin in car_found["skins"]
+                            if car_skin["id"] == skin_id),
+                           None)) is None:
         return "Skin Not Found!"
 
-    if owned_car := next((owned_car
-                          for owned_car in player_found["cars"]
-                          if owned_car["id"] == car_id),
-                         None) is None:
+    if (owned_car := next((owned_car
+                           for owned_car in player_found["cars"]
+                           if owned_car["id"] == car_id),
+                          None)) is None:
         response.status_code = status.HTTP_409_CONFLICT
         return "Given Player Doesn't Own the Car!"
 

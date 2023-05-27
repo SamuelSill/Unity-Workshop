@@ -1,8 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.UI;
 
 public class CarView : MonoBehaviour
@@ -10,13 +8,16 @@ public class CarView : MonoBehaviour
     public GameObject selectedCarObject;
     public TMP_Text selectedCarType;
     public TMP_Text selectedCarUpgrades;
+    public TMP_Text carSpeed;
+    public TMP_Text carSteering;
+    public TMP_Text carThickness;
+    public GameObject upgradeSpeedButton;
+    public GameObject upgradeSteeringButton;
+    public GameObject upgradeThicknessButton;
 
     // Sprites
     public Sprite blueAutoCarSprite;
     public Sprite redAutoCarSprite;
-
-    private int selectedCarIndex;
-    private List<PlayerCar> ownedCars;
 
     private static Dictionary<string, Sprite> idToSpriteMap;
 
@@ -37,7 +38,10 @@ public class CarView : MonoBehaviour
             };
         }
 
-        StartCoroutine(GetCars());
+        if (ServerSession.OwnedCars.Count > 0)
+        {
+            ShowSelectedCar();
+        }
     }
 
     // Update is called once per frame
@@ -46,123 +50,72 @@ public class CarView : MonoBehaviour
 
     }
 
-    [System.Serializable]
-    class PlayerCarUpgrade
-    {
-        public int speed;
-        public int thickness;
-        public int steering;
-    }
-
-    [System.Serializable]
-    class PlayerCar
-    {
-        public string id;
-        public PlayerCarUpgrade upgrades;
-        public List<string> skins;
-        public int selected_skin;
-    }
-
-    [System.Serializable]
-    class PlayerCars
-    {
-        public List<PlayerCar> cars;
-    }
-
-    [System.Serializable]
-    class SelectedCar
-    {
-        public int selectedCarIndex;
-    }
-
-    IEnumerator GetCars()
-    {
-        UnityWebRequest getRequest = UnityWebRequest.Get($"{LoginMenu.serverURL}/players/cars?username={LoginMenu.loggedUsername}&password={LoginMenu.loggedPassword}");
-        yield return getRequest.SendWebRequest();
-
-        if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
-        {
-            ownedCars = JsonUtility.FromJson<PlayerCars>($"{{\"cars\": {getRequest.downloadHandler.text}}}").cars;
-
-            UnityWebRequest selectedCarRequest = UnityWebRequest.Get($"{LoginMenu.serverURL}/players/cars/selected?username={LoginMenu.loggedUsername}&password={LoginMenu.loggedPassword}");
-            yield return selectedCarRequest.SendWebRequest();
-
-            if (selectedCarRequest.result != UnityWebRequest.Result.ConnectionError && selectedCarRequest.responseCode == 200)
-            {
-                selectedCarIndex = JsonUtility.FromJson<SelectedCar>($"{{\"selectedCar\": {selectedCarRequest.downloadHandler.text}}}").selectedCarIndex;
-                ShowSelectedCar();
-            }
-        }
-    }
-
     public void OnPressLeft()
     {
-        if (selectedCarIndex > 0)
-        {
-            StartCoroutine(NotifySelectedCar(selectedCarIndex - 1));
-        }
-    }
-
-    IEnumerator NotifySelectedCar(int newCarIndex)
-    {
-        UnityWebRequest getRequest = UnityWebRequest.Put($"{LoginMenu.serverURL}/players/cars?username={LoginMenu.loggedUsername}&password={LoginMenu.loggedPassword}&car_index={newCarIndex}", "");
-        yield return getRequest.SendWebRequest();
-
-        if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
-        {
-            selectedCarIndex = newCarIndex;
-            ShowSelectedCar();
-        }
+        ServerSession.SelectCar((ServerSession.OwnedCars.Count + ServerSession.CurrentCarIndex - 1) % ServerSession.OwnedCars.Count, 
+                                ShowSelectedCar);
     }
 
     public void OnPressRight()
     {
-        if (selectedCarIndex < ownedCars.Count - 1)
-        {
-            StartCoroutine(NotifySelectedCar(selectedCarIndex + 1));
-        }
+        ServerSession.SelectCar((ServerSession.CurrentCarIndex + 1) % ServerSession.OwnedCars.Count,
+                                ShowSelectedCar);
     }
 
     public void OnPressUp()
     {
-        if (ownedCars[selectedCarIndex].selected_skin < ownedCars[selectedCarIndex].skins.Count - 1)
-        {
-            StartCoroutine(NotifySelectedSkin(ownedCars[selectedCarIndex].selected_skin + 1));
-        }
+        ServerSession.SelectSkin((ServerSession.CurrentCar.selected_skin + 1) % ServerSession.CurrentCar.skins.Count,
+                                 ShowSelectedCar);
     }
 
     public void OnPressDown()
     {
-        if (ownedCars[selectedCarIndex].selected_skin > 0)
-        {
-            StartCoroutine(NotifySelectedSkin(ownedCars[selectedCarIndex].selected_skin - 1));
-        }
-    }
-
-    public bool IsCarOwned(string carId)
-    {
-        return ownedCars.Exists(currentCar => currentCar.id == carId);
-    }
-
-    IEnumerator NotifySelectedSkin(int newSkinIndex)
-    {
-        UnityWebRequest getRequest = UnityWebRequest.Put($"{LoginMenu.serverURL}/players/cars/skins?username={LoginMenu.loggedUsername}&password={LoginMenu.loggedPassword}&car_index={selectedCarIndex}&skin_index={newSkinIndex}", "");
-        yield return getRequest.SendWebRequest();
-
-        if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
-        {
-            ownedCars[selectedCarIndex].selected_skin = newSkinIndex;
-            ShowSelectedCar();
-        }
+        ServerSession.SelectSkin((ServerSession.CurrentCar.skins.Count + ServerSession.CurrentCar.selected_skin - 1) % ServerSession.CurrentCar.skins.Count,
+                                 ShowSelectedCar);
     }
 
     void ShowSelectedCar()
     {
-        selectedCarObject.GetComponent<Image>().sprite = GetCarSprite(ownedCars[selectedCarIndex].id, ownedCars[selectedCarIndex].skins[ownedCars[selectedCarIndex].selected_skin]);
-        selectedCarType.text = ownedCars[selectedCarIndex].id;
-        selectedCarUpgrades.text = 
-            "Speed: " + ownedCars[selectedCarIndex].upgrades.speed.ToString() + "\n" +
-            "Steering: " + ownedCars[selectedCarIndex].upgrades.steering.ToString() + "\n" +
-            "Thickness: " + ownedCars[selectedCarIndex].upgrades.thickness.ToString() + "\n";
+        // Car
+        selectedCarObject.GetComponent<Image>().sprite = 
+            GetCarSprite(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
+        selectedCarType.text = ServerSession.CurrentCar.id;
+
+        // Upgrades
+        carSpeed.text = ServerSession.CurrentCarSpeed.ToString();
+        carSteering.text = ServerSession.CurrentCarSteering.ToString();
+        carThickness.text = ServerSession.CurrentCarThickness.ToString();
+
+        // Upgrade Prices
+        DisplayUpgradeCost(upgradeSpeedButton, ServerSession.SpeedUpgradeCost);
+        DisplayUpgradeCost(upgradeSteeringButton, ServerSession.SteeringUpgradeCost);
+        DisplayUpgradeCost(upgradeThicknessButton, ServerSession.ThicknessUpgradeCost);
+    }
+
+    void DisplayUpgradeCost(GameObject button, int currentUpgradeCost)
+    {
+        if (currentUpgradeCost != -1)
+        {
+            button.GetComponentInChildren<TMP_Text>().text = $"UPGRADE\n{currentUpgradeCost}$";
+        }
+        else
+        {
+            button.SetActive(false);
+        }
+    }
+
+    public void UpgradeSpeed()
+    {
+        ServerSession.PurchaseUpgrade("speed", ShowSelectedCar);
+    }
+
+    public void UpgradeSteering()
+    {
+        ServerSession.PurchaseUpgrade("steering", ShowSelectedCar);
+    }
+
+    public void UpgradeThickness()
+    {
+        ServerSession.PurchaseUpgrade("thickness", ShowSelectedCar);
     }
 }

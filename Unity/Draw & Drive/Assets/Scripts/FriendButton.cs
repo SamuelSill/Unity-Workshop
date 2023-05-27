@@ -1,8 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Networking;
 
 public class FriendButton : MonoBehaviour
 {
@@ -28,17 +25,6 @@ public class FriendButton : MonoBehaviour
 
     public void RemoveFriend()
     {
-        StartCoroutine(DeleteFriend());
-    }
-
-    IEnumerator DeleteFriend()
-    {
-        UnityWebRequest getRequest = UnityWebRequest.Delete($"{LoginMenu.serverURL}/players/friends?username={LoginMenu.loggedUsername}&password={LoginMenu.loggedPassword}&friend_username={usernameButton.text}");
-        yield return getRequest.SendWebRequest();
-
-        if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
-        {
-            Destroy(friendObject);
-        }
+        ServerSession.DeleteFriend(usernameButton.text, () => Destroy(friendObject));
     }
 }
