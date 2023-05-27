@@ -14,7 +14,7 @@ TagManager:
   - Background
   - Object
   - DrawLayer
-  - 
+  - Partical
   - 
   - 
   - 
@@ -40,6 +40,15 @@ TagManager:
   m_SortingLayers:
   - name: Background
     uniqueID: 1354929931
+    locked: 0
+  - name: DrawLayer
+    uniqueID: 2355487667
+    locked: 0
+  - name: Object
+    uniqueID: 3901880849
+    locked: 0
+  - name: Partical
+    uniqueID: 3046978293
     locked: 0
   - name: Skidmarks
     uniqueID: 1154377547
