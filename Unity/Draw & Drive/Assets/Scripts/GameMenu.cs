@@ -21,4 +21,9 @@ public class GameMenu : MonoBehaviour
         ServerSession.LogOut();
         SceneManager.LoadScene(logOutScene);
     }
+
+    public void Exit()
+    {
+        Application.Quit(0);
+    }
 }

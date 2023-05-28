@@ -833,7 +833,7 @@ RectTransform:
   - {fileID: 974059857}
   - {fileID: 266580550}
   m_Father: {fileID: 1660514279}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -1173,7 +1173,7 @@ RectTransform:
   - {fileID: 1279902381}
   - {fileID: 1430197690}
   m_Father: {fileID: 1660514279}
-  m_RootOrder: 5
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -1813,7 +1813,7 @@ RectTransform:
   m_Children:
   - {fileID: 943642374}
   m_Father: {fileID: 1660514279}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -2238,7 +2238,7 @@ RectTransform:
   - {fileID: 1335033348}
   - {fileID: 202824101}
   m_Father: {fileID: 1660514279}
-  m_RootOrder: 4
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
@@ -3656,14 +3656,14 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1514055644}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2017559126}
-  m_Father: {fileID: 1877472053}
-  m_RootOrder: 3
+  m_Father: {fileID: 1660514279}
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -4098,6 +4098,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1562187275}
+  - {fileID: 1514055645}
   - {fileID: 728131247}
   - {fileID: 1877472053}
   - {fileID: 361565399}
@@ -4123,6 +4124,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fa9b98f2c4526c4981d7330e642474f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  mainMenu: {fileID: 1877472049}
   gameScene: Game Menu
 --- !u!114 &1660514283
 MonoBehaviour:
@@ -4324,7 +4326,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1877472050
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4401,9 +4403,8 @@ RectTransform:
   - {fileID: 2056148409}
   - {fileID: 1017673992}
   - {fileID: 245385983}
-  - {fileID: 1514055645}
   m_Father: {fileID: 1660514279}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}

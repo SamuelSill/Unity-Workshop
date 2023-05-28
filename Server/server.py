@@ -521,7 +521,20 @@ def add_new_game(username: str,
     return "New Game Saved"
 
 
-@app.post("/players/games",
+@app.get("/players/achievements",
+         status_code=status.HTTP_404_NOT_FOUND)
+def get_achievements(username: str,
+                     password: str,
+                     response: Response):
+    if (player_found := player(username, password)) is None:
+        return "Player Not Found!"
+
+    response.status_code = status.HTTP_200_OK
+
+    return player_found["achievements"]
+
+
+@app.post("/players/achievements",
           status_code=status.HTTP_404_NOT_FOUND)
 def add_achievement(username: str,
                     password: str,

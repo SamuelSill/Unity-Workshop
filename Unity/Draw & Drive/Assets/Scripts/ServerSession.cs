@@ -18,6 +18,9 @@ public class ServerSession : MonoBehaviour
     // User Paintings
     private static List<Painting> _userPaintings = new();
 
+    // User Achievements
+    private static List<Achievement> _userAchievements = new();
+
     // User Cars
     private static List<PlayerCar> _ownedCars = new List<PlayerCar>();
     private static int _selectedCarIndex = 0;
@@ -34,6 +37,7 @@ public class ServerSession : MonoBehaviour
     public static int Money => _userMoney;
     public static List<string> Friends => _userFriends;
     public static List<Painting> Paintings => _userPaintings;
+    public static List<Achievement> Achievements => _userAchievements;
     public static List<PlayerCar> OwnedCars => _ownedCars;
     public static PlayerCar CurrentCar => _ownedCars[_selectedCarIndex];
     public static int CurrentCarIndex => _selectedCarIndex;
@@ -340,6 +344,9 @@ public class ServerSession : MonoBehaviour
         // User Paintings
         _userPaintings.Clear();
 
+        // User Achievements
+        _userAchievements.Clear();
+
         // User Cars
         _ownedCars.Clear();
         _selectedCarIndex = 0;
@@ -358,6 +365,10 @@ public class ServerSession : MonoBehaviour
             file.Close();
 
             session.StartCoroutine(session.TryLogin(credentials.username, credentials.password, false, loginSuccessfulCallback, loginFailedCallback));
+        }
+        else
+        {
+            loginFailedCallback.Invoke();
         }
     }
 
@@ -423,6 +434,7 @@ public class ServerSession : MonoBehaviour
         yield return GetUserMoney();
         yield return GetUserPaintings();
         yield return GetFriends();
+        yield return GetAchievements();
         yield return GetUserOwnedCars();
         yield return GetUserSelectedCar();
         yield return GetAllCars();
@@ -508,6 +520,30 @@ public class ServerSession : MonoBehaviour
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
             _userFriends = JsonUtility.FromJson<JsonFriends>($"{{\"names\": {getRequest.downloadHandler.text}}}").names;
+        }
+    }
+
+    [System.Serializable]
+    public class Achievement
+    {
+        public string id;
+        public string time;
+    }
+
+    [System.Serializable]
+    class JsonAchievements
+    {
+        public List<Achievement> achievements;
+    }
+
+    IEnumerator GetAchievements()
+    {
+        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverURL}/players/achievements?username={_loggedUsername}&password={_loggedPassword}");
+        yield return getRequest.SendWebRequest();
+
+        if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
+        {
+            _userAchievements = JsonUtility.FromJson<JsonAchievements>($"{{\"achievements\": {getRequest.downloadHandler.text}}}").achievements;
         }
     }
 
