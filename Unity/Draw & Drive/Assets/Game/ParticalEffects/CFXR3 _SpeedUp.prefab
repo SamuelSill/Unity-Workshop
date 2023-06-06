@@ -9942,7 +9942,7 @@ ParticleSystem:
   serializedVersion: 8
   lengthInSec: 1
   simulationSpeed: 1
-  stopAction: 0
+  stopAction: 2
   cullingMode: 1
   ringBufferMode: 0
   ringBufferLoopRange: {x: 0, y: 1}
@@ -14784,7 +14784,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03c8102322ad0d04fa6ae3f17887e967, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isDynamic: 0
+  isDynamic: 1
   text: SPEED UP!
   size: 1
   letterSpacing: 0.35
