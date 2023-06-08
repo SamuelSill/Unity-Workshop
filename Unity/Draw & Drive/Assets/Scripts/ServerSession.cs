@@ -29,7 +29,7 @@ public class ServerSession : MonoBehaviour
     private static List<Car> _cars = new();
 
     //  Consts
-    private const string serverURL = "localhost:5555";
+    private const string serverURL = "http://34.118.118.213:80";
     private static string credentialsFile = "";
 
     // Properties

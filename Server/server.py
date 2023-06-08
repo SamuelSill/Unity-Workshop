@@ -561,7 +561,7 @@ def add_achievement(username: str,
 
 def run_server():
     from uvicorn import run
-    run(app, port=5555)
+    run(app, port=80)
 
 
 if __name__ == '__main__':
