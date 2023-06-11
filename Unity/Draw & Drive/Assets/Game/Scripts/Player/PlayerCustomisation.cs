@@ -9,6 +9,7 @@ public class PlayerCustomisation : NetworkBehaviour
     public int defultBrushSize = 3;
     public int BrushSize { get; set; }
     private SpriteRenderer moduleSprit;
+    private SpriteRenderer[] playerModules;
     private readonly Color blue = new Color(0.2f, 0.4f, 1);
     public  moduleColors currentColor = moduleColors.blue;
     public enum moduleColors { 
@@ -37,7 +38,26 @@ public class PlayerCustomisation : NetworkBehaviour
         adjustSize();
         Transform carModule = transform.Find("PlayerModule").GetChild(0);
         moduleSprit = carModule.GetComponent<SpriteRenderer>();
+        playerModules = transform.Find("PlayerModule").GetComponentsInChildren<SpriteRenderer>();
+        SetMoudleOfSameColor();
     }
+
+    private void SetMoudleOfSameColor() 
+    {
+        string colorLetter = currentColor.ToString().Substring(0,1);
+        Debug.Log("letter : "+ colorLetter);
+        foreach (SpriteRenderer sprit in playerModules)
+        {
+            if (sprit.transform.name.Contains("_" + colorLetter.ToUpper()))
+            {
+                sprit.enabled = true;
+            }
+            else {
+                sprit.enabled = false;
+            }
+        }
+    }
+    
 
     // Update is called once per frame
     void FixedUpdate()
@@ -45,5 +65,6 @@ public class PlayerCustomisation : NetworkBehaviour
 
         adjustSize();
         moduleSprit.color = getColor();
+        SetMoudleOfSameColor();
     }
 }
