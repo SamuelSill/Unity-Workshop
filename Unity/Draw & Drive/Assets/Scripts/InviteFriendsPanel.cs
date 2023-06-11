@@ -1,12 +1,11 @@
 using TMPro;
 using UnityEngine;
 
-public class FriendsPanel : MonoBehaviour
+public class InviteFriendsPanel : MonoBehaviour
 {
     public GameObject grid;
     public GameObject friendPrefab;
-    public TMP_InputField friendToAddField;
-    public GameObject gameMenu;
+    public GameObject startMenu;
 
     // Start is called before the first frame update
     void Start()
@@ -26,13 +25,8 @@ public class FriendsPanel : MonoBehaviour
     void DisplayFriend(string friendUsername)
     {
         var newObject = Instantiate(friendPrefab, grid.transform);
-        newObject.GetComponent<FriendButton>().usernameButton.text = friendUsername;
-        newObject.GetComponent<FriendButton>().friendObject = newObject;
-        newObject.GetComponent<FriendButton>().gameMenu = gameMenu;
-    }
-
-    public void AddFriend()
-    {
-        ServerSession.AddNewFriend(friendToAddField.text, () => DisplayFriend(friendToAddField.text));
+        newObject.GetComponent<InviteFriendButton>().usernameButton.text = friendUsername;
+        newObject.GetComponent<InviteFriendButton>().startMenu = startMenu;
+        newObject.GetComponent<InviteFriendButton>().inviteFriendsPanel = gameObject;
     }
 }

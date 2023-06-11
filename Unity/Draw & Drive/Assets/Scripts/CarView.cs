@@ -15,29 +15,9 @@ public class CarView : MonoBehaviour
     public GameObject upgradeSteeringButton;
     public GameObject upgradeThicknessButton;
 
-    // Sprites
-    public Sprite blueAutoCarSprite;
-    public Sprite redAutoCarSprite;
-
-    private static Dictionary<string, Sprite> idToSpriteMap;
-
-    public static Sprite GetCarSprite(string carType, string carSkin)
-    {
-        return idToSpriteMap[$"{carType}.{carSkin}"];
-    }
-
     // Start is called before the first frame update
     public void Start()
     {
-        if (idToSpriteMap == null)
-        {
-            idToSpriteMap = new()
-            {
-                ["auto.blue"] = blueAutoCarSprite,
-                ["auto.red"] = redAutoCarSprite
-            };
-        }
-
         if (ServerSession.OwnedCars.Count > 0)
         {
             ShowSelectedCar();
@@ -78,7 +58,7 @@ public class CarView : MonoBehaviour
     {
         // Car
         selectedCarObject.GetComponent<Image>().sprite = 
-            GetCarSprite(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
+            CarSprites.GetCarSprite(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
         selectedCarType.text = ServerSession.CurrentCar.id;
 
         // Upgrades

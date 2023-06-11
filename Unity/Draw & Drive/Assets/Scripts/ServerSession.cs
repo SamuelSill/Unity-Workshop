@@ -29,7 +29,7 @@ public class ServerSession : MonoBehaviour
     private static List<Car> _cars = new();
 
     //  Consts
-    private const string serverURL = "http://34.118.118.213:80";
+    private const string serverURL = "http://34.118.0.97:80";
     private static string credentialsFile = "";
 
     // Properties
@@ -64,11 +64,12 @@ public class ServerSession : MonoBehaviour
         string password, 
         string firstName, 
         string lastName,
+        string description,
         Action createUserSuccessfulCallback,
         Action createUserFailedCallback
     )
     {
-        session.StartCoroutine(session.TryCreateUser(username, password, firstName, lastName, createUserSuccessfulCallback, createUserFailedCallback));
+        session.StartCoroutine(session.TryCreateUser(username, password, firstName, lastName, description, createUserSuccessfulCallback, createUserFailedCallback));
     }
 
     IEnumerator TryCreateUser(
@@ -76,6 +77,7 @@ public class ServerSession : MonoBehaviour
         string password, 
         string firstName, 
         string lastName, 
+        string description,
         Action createUserSuccessfulCallback, 
         Action createUserFailedCallback
     )
@@ -86,7 +88,8 @@ public class ServerSession : MonoBehaviour
             $"\"username\": \"{username}\", " +
             $"\"password\": \"{password}\", " +
             $"\"first_name\": \"{firstName}\", " +
-            $"\"last_name\": \"{lastName}\"" +
+            $"\"last_name\": \"{lastName}\", " +
+            $"\"description\": \"{description}\"" +
             $"}}"
         );
 
@@ -642,6 +645,32 @@ public class ServerSession : MonoBehaviour
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
             _cars = JsonUtility.FromJson<Cars>($"{{\"cars\": {getRequest.downloadHandler.text}}}").cars;
+        }
+    }
+
+    public static void GetUserDetails(string username, Action<UserStats> userDetailsRetreived)
+    {
+        session.StartCoroutine(session.GetUserStats(username, userDetailsRetreived));
+    }
+
+    [Serializable]
+    public class UserStats
+    {
+        public string description;
+        public PlayerCar selected_car;
+        public int games_won;
+        public int games_lost;
+        public double sum_accuracy;
+    }
+
+    IEnumerator GetUserStats(string username, Action<UserStats> userDetailsRetreived)
+    {
+        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverURL}/players/stats?username={username}");
+        yield return getRequest.SendWebRequest();
+
+        if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
+        {
+            userDetailsRetreived.Invoke(JsonUtility.FromJson<UserStats>(getRequest.downloadHandler.text));
         }
     }
 }

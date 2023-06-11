@@ -33,7 +33,7 @@ public class SkinToBuy : MonoBehaviour
         skinPriceNumber = skin.price;
 
         var image = GetComponent<Image>();
-        image.sprite = CarView.GetCarSprite(ServerSession.CurrentCar.id, skin.id);
+        image.sprite = CarSprites.GetCarSprite(ServerSession.CurrentCar.id, skin.id);
 
         bool isSkinOwned = ServerSession.CurrentCar.skins.Exists(ownedSkin => ownedSkin == skin.id);
         if (ServerSession.Money < skinPriceNumber || isSkinOwned)

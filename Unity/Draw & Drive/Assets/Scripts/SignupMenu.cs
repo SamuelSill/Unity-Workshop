@@ -4,13 +4,15 @@ using UnityEngine.SceneManagement;
 
 public class SignupMenu : MonoBehaviour
 {
-    public string nextScene;
     public TMP_InputField firstNameField;
     public TMP_InputField lastNameField;
+    public TMP_InputField description;
     public TMP_InputField usernameField;
     public TMP_InputField passwordField;
     public TMP_InputField passwordConfirmation;
     public TMP_Text errorMessage;
+
+    public GameObject loginMenu;
 
     // Start is called before the first frame update
     void Start()
@@ -32,10 +34,14 @@ public class SignupMenu : MonoBehaviour
 
         ServerSession.CreateUser(
             usernameField.text, 
-            passwordField.text, 
+            passwordField.text,
             firstNameField.text, 
             lastNameField.text,
-            () => SceneManager.LoadScene(nextScene),
+            description.text,
+            () => {
+                gameObject.SetActive(false);
+                loginMenu.SetActive(true);
+            },
             () => errorMessage.text = "FAILED TO SIGN UP!"
         );
     }

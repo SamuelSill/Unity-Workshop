@@ -5,6 +5,7 @@ public class FriendButton : MonoBehaviour
 {
     public TMP_Text usernameButton;
     public GameObject friendObject;
+    public GameObject gameMenu;
 
     // Start is called before the first frame update
     void Start()
@@ -20,7 +21,7 @@ public class FriendButton : MonoBehaviour
 
     public void FriendClicked()
     {
-        Debug.Log($"Clicking {usernameButton.text}");
+        gameMenu.GetComponent<GameMenu>().ViewProfile(usernameButton.text);
     }
 
     public void RemoveFriend()

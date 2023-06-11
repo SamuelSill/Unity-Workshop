@@ -59,6 +59,7 @@ class RegistrationForm(BaseModel):
     password: str
     first_name: str
     last_name: str
+    description: Optional[str]
 
 
 @app.post("/players/register", status_code=status.HTTP_409_CONFLICT)
@@ -76,10 +77,13 @@ def post_register(registration_form: RegistrationForm,
         "password": registration_form.password,
         "first_name": registration_form.first_name,
         "last_name": registration_form.last_name,
+        "description": registration_form.description,
         "achievements": [],
         "friends": [],
         "money": 1000,
-        "sum_accruacy": 1000,
+        "sum_accuracy": 0,
+        "games_won": 0,
+        "games_lost": 0,
         "cars": [
             {
                 "id": "auto",
@@ -124,28 +128,23 @@ def get_money(username: str,
     return player_found["money"]
 
 
-@app.get("/players/stats/games_lost",
+@app.get("/players/stats",
          status_code=status.HTTP_404_NOT_FOUND)
-def get_games_lost(username: str,
-                   password: str,
-                   response: Response):
-    if (player_found := player(username, password)) is None:
+def get_stats(username: str,
+              response: Response):
+    if (player_found := players_collection.find_one({
+        "username": username
+    })) is None:
         return "Player Not Found!"
 
     response.status_code = status.HTTP_200_OK
-    return player_found["games_lost"]
-
-
-@app.get("/players/stats/games_won",
-         status_code=status.HTTP_404_NOT_FOUND)
-def get_games_won(username: str,
-                  password: str,
-                  response: Response):
-    if (player_found := player(username, password)) is None:
-        return "Player Not Found!"
-
-    response.status_code = status.HTTP_200_OK
-    return player_found["games_won"]
+    return {
+        "description": player_found["description"],
+        "games_lost": player_found["games_lost"],
+        "games_won": player_found["games_won"],
+        "sum_accuracy": player_found["sum_accuracy"],
+        "selected_car": player_found["cars"][player_found["selected_car"]]
+    }
 
 # endregion
 
@@ -561,7 +560,7 @@ def add_achievement(username: str,
 
 def run_server():
     from uvicorn import run
-    run(app, port=80)
+    run(app, host="0.0.0.0", port=80)
 
 
 if __name__ == '__main__':

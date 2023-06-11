@@ -33,7 +33,7 @@ public class CarToBuy : MonoBehaviour
         carPriceNumber = car.price;
 
         var image = GetComponent<Image>();
-        image.sprite = CarView.GetCarSprite(car.id, car.skins[0].id);
+        image.sprite = CarSprites.GetCarSprite(car.id, car.skins[0].id);
 
         bool isCarOwned = ServerSession.OwnedCars.Exists(ownedCar => ownedCar.id == car.id);
         if (ServerSession.Money < carPriceNumber || isCarOwned)
