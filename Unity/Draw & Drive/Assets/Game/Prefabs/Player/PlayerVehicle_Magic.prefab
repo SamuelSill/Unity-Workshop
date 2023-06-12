@@ -5049,8 +5049,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e34f4671247e13439c58ab62194960a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  skins: []
+  skinChoice: 0
+  myVeichle: 0
   defultBrushSize: 3
-  currentColor: 2
+  currentColor: 1
 --- !u!61 &136720013667276844
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -5250,7 +5253,7 @@ Transform:
   m_GameObject: {fileID: 3657378716010086125}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -2}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 136720012611130129}
@@ -5334,7 +5337,7 @@ Transform:
   m_GameObject: {fileID: 6053949126176050573}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -2}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 136720012611130129}
@@ -5418,7 +5421,7 @@ Transform:
   m_GameObject: {fileID: 7373350381639263924}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -2}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 136720012611130129}

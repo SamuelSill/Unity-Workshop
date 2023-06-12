@@ -52,7 +52,7 @@ public class PlayerBrush : NetworkBehaviour
     private Vector2 WorldToPixelUV(Vector3 worldPosition, int textureWidth, int textureHeight)
     {
         //Debug.Log("player position: " + worldPosition);
-        Vector3 localPosition = pallet.transform.InverseTransformPoint(transform.position);
+        Vector3 localPosition = pallet.transform.InverseTransformPoint(worldPosition);
         //Debug.Log("local player position: " + localPosition);
         Vector2 pixelUV = new Vector2(localPosition.x + 0.5f, localPosition.y + 0.5f);
         //pixelUV = new Vector2( 0.5f, 0.5f);
@@ -85,7 +85,7 @@ public class PlayerBrush : NetworkBehaviour
                 //Debug.Log("rend.material.mainTexture Found width= "+ tex.width+ " height="+ tex.height);
                 Vector2 pixelUV = WorldToPixelUV(playerPosition, tex.width, tex.height);
 
-                //Debug.Log("pixelUV position:" + pixelUV);
+                Debug.Log("pixelUV position:" + pixelUV);
                 CmdBrushAreaWithColorOnServer(pixelUV, PlayerCustomisation.getColor(), PlayerCustomisation.BrushSize);
                 BrushAreaWithColor(pixelUV, PlayerCustomisation.getColor(), PlayerCustomisation.BrushSize);
             }

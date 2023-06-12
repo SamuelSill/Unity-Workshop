@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 135200867750490105}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -2}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2488249065163097433}
@@ -110,7 +110,7 @@ Transform:
   m_GameObject: {fileID: 2165759963677534070}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -2}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2488249065163097433}
@@ -194,7 +194,7 @@ Transform:
   m_GameObject: {fileID: 2504953177412584878}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -2}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2488249065163097433}
@@ -5332,6 +5332,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e34f4671247e13439c58ab62194960a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  skins:
+  - red: {fileID: 2800000, guid: 62c4a08bc5fc0e24fafaf9e3f9c92bad, type: 3}
+    green: {fileID: 2800000, guid: a63cbfd8121f0d04996b3461f9b65144, type: 3}
+    blue: {fileID: 2800000, guid: 255cee9ffa5f4064eacf1433cfa7f000, type: 3}
+  - red: {fileID: 2800000, guid: 3a610052d721f1a4ba82424fc8ebba4e, type: 3}
+    green: {fileID: 2800000, guid: 4cd8c10b569899d4083179b71fda04be, type: 3}
+    blue: {fileID: 2800000, guid: 318eb6c9c0b6dd64c9031e26db344bdf, type: 3}
+  - red: {fileID: 2800000, guid: d461ba66a06c042448838b661775b21b, type: 3}
+    green: {fileID: 2800000, guid: 6dcab0540ed884a4895b6b05ad05e4d7, type: 3}
+    blue: {fileID: 2800000, guid: 7f43144145f7bb84ab654aeb17ca2743, type: 3}
+  - red: {fileID: 2800000, guid: 216f432a7d1d7f74f950471e961b8180, type: 3}
+    green: {fileID: 2800000, guid: f3568b80ad1817b4ea9f51e41dcc6358, type: 3}
+    blue: {fileID: 2800000, guid: 5ebd1a7425df9094a8c512b5559be3e1, type: 3}
+  - red: {fileID: 2800000, guid: cc74ae21dfb1034418596718e05e49a7, type: 3}
+    green: {fileID: 2800000, guid: 0a0b567eeef0fe44ebb1f99782dd8d52, type: 3}
+    blue: {fileID: 2800000, guid: 304f1c0c96dc5ab4580006d187426124, type: 3}
+  skinChoice: 1
+  myVeichle: 0
   defultBrushSize: 3
   currentColor: 2
 --- !u!61 &7069749489798971446
