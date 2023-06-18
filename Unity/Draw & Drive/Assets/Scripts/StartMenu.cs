@@ -9,6 +9,7 @@ public class StartMenu : MonoBehaviour
     public GameObject startMenu;
     public GameObject gameMenu;
 
+    public GameObject startButton;
     public TMP_InputField joinCodeInput;
 
     public GameObject selectedCarObject;
@@ -18,7 +19,7 @@ public class StartMenu : MonoBehaviour
     public GameObject friendBox1;
     public GameObject friendBox2;
 
-    int friendSelected;
+    bool isHost;
 
     // Start is called before the first frame update
     public void Start()
@@ -30,13 +31,11 @@ public class StartMenu : MonoBehaviour
     {
     }
 
-    public void SelectFriendBox(int friendNumberSelected)
-    {
-        friendSelected = friendNumberSelected;
-    }
-
     void LoadStartMenu(string gameCode, List<ServerSession.UserGameStats> players)
     {
+        isHost = (players.Count == 0);
+
+        startButton.SetActive(isHost);
         startMenu.SetActive(true);
         gameMenu.SetActive(false);
 
@@ -73,6 +72,11 @@ public class StartMenu : MonoBehaviour
         friendBox.GetComponentInChildren<TMP_Text>().text = "";
     }
 
+    void GameStarted()
+    {
+        PopupMessage.Display("Game Started!");
+    }
+
     public void CreateButtonPressed()
     {
         if (!ServerSession.IsSocketBusy())
@@ -80,7 +84,8 @@ public class StartMenu : MonoBehaviour
             ServerSession.CreateGame(
                 gameCode => LoadStartMenu(gameCode, new List<ServerSession.UserGameStats>()),
                 ShowJoinedPlayer,
-                RemoveJoinedPlayer
+                RemoveJoinedPlayer,
+                GameStarted
             );
         }
     }
@@ -101,11 +106,19 @@ public class StartMenu : MonoBehaviour
             ServerSession.JoinGame(
                 joinCodeInput.text,
                 (players) => LoadStartMenu(joinCodeInput.text, players),
-                (message) => { Debug.Log(message); },
                 ShowJoinedPlayer,
                 RemoveJoinedPlayer,
+                GameStarted,
                 BackButtonPressed
             );
+        }
+    }
+
+    public void StartGame()
+    {
+        if (isHost)
+        {
+            ServerSession.StartGame();
         }
     }
 }

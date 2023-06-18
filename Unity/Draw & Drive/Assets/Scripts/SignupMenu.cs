@@ -10,7 +10,6 @@ public class SignupMenu : MonoBehaviour
     public TMP_InputField usernameField;
     public TMP_InputField passwordField;
     public TMP_InputField passwordConfirmation;
-    public TMP_Text errorMessage;
 
     public GameObject loginMenu;
 
@@ -28,7 +27,7 @@ public class SignupMenu : MonoBehaviour
     {
         if (passwordConfirmation.text != passwordField.text)
         {
-            errorMessage.text = "PASSWORDS DON'T MATCH!";
+            PopupMessage.Display("PASSWORDS DON'T MATCH!");
             return;
         }
 
@@ -42,7 +41,7 @@ public class SignupMenu : MonoBehaviour
                 gameObject.SetActive(false);
                 loginMenu.SetActive(true);
             },
-            () => errorMessage.text = "FAILED TO SIGN UP!"
+            () => PopupMessage.Display("FAILED TO SIGN UP!")
         );
     }
 }

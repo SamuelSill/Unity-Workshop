@@ -9,7 +9,6 @@ public class LoginMenu : MonoBehaviour
     public TMP_InputField usernameField;
     public TMP_InputField passwordField;
     public Toggle rememberMeToggle;
-    public TMP_Text errorMessage;
 
     // Start is called before the first frame update
     void Start()
@@ -29,7 +28,7 @@ public class LoginMenu : MonoBehaviour
             passwordField.text,
             rememberMeToggle.isOn,
             () => SceneManager.LoadScene(gameScene),
-            () => errorMessage.text = "FAILED TO LOGIN!"
+            () => PopupMessage.Display("FAILED TO LOGIN!")
         );
     }
 }

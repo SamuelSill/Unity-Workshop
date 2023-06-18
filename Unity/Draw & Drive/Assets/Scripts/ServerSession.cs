@@ -715,7 +715,8 @@ public class ServerSession : MonoBehaviour
 
     public static void CreateGame(Action<string> gameCreated, 
                                   Action<UserGameStats> userJoined,
-                                  Action<string> userLeft)
+                                  Action<string> userLeft,
+                                  Action gameStarted)
     {
         Task.Run(() =>
         {
@@ -738,9 +739,21 @@ public class ServerSession : MonoBehaviour
                     GameCreatedMessage gameCreatedMessage = JsonUtility.FromJson<GameCreatedMessage>(e.Data);
                     PerformAction(() => gameCreated.Invoke(gameCreatedMessage.code));
                 }
-                else if (message.id == "Error")
+                else if (message.id == "GameStarted")
                 {
+                    PerformAction(gameStarted);
+                }
+                else if (message.id == "ErrorCreating")
+                {
+                    ErrorMessage errorMessage = JsonUtility.FromJson<ErrorMessage>(e.Data);
+                    PopupMessage.Display(errorMessage.message);
+
                     socket.Close();
+                }
+                else if (message.id == "ErrorStarting")
+                {
+                    ErrorMessage errorMessage = JsonUtility.FromJson<ErrorMessage>(e.Data);
+                    PopupMessage.Display(errorMessage.message);
                 }
             };
 
@@ -766,9 +779,9 @@ public class ServerSession : MonoBehaviour
 
     public static void JoinGame(string code,
                                 Action<List<UserGameStats>> gameJoined,
-                                Action<string> errorJoining, 
                                 Action<UserGameStats> userJoined,
                                 Action<string> userLeft,
+                                Action gameStarted,
                                 Action gameClosed)
     {
         Task.Run(() =>
@@ -797,17 +810,26 @@ public class ServerSession : MonoBehaviour
                     PerformAction(gameClosed);
                     socket.Close();
                 }
-                else if (message.id == "Error")
+                else if (message.id == "GameStarted")
+                {
+                    PerformAction(gameStarted);
+                }
+                else if (message.id == "ErrorJoining")
                 {
                     ErrorMessage errorMessage = JsonUtility.FromJson<ErrorMessage>(e.Data);
+                    PopupMessage.Display(errorMessage.message);
 
-                    PerformAction(() => errorJoining.Invoke(errorMessage.message));
                     socket.Close();
                 }
             };
 
             socket.Connect();
         });
+    }
+
+    public static void StartGame()
+    {
+        socket?.Send("{\"id\": \"StartGame\"}");
     }
 
     public static void CloseGameSocket()

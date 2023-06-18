@@ -9,8 +9,6 @@ import gridfs
 
 from pydantic import BaseModel
 
-from threading import Lock
-
 # region Resources
 
 mongo_db: Database = MongoClient(
@@ -561,7 +559,12 @@ class Game:
     def __init__(self,
                  username: str,
                  game_host: WebSocket):
+        self.__host: str = username
         self.__player_sockets: dict[str, WebSocket] = {username: game_host}
+
+    @property
+    def __host_socket(self) -> WebSocket:
+        return self.__player_sockets[self.__host]
 
     async def join(self,
                    username: str,
@@ -616,6 +619,18 @@ class Game:
 
         return True
 
+    async def start(self) -> None:
+        if len(self.__player_sockets) < 3:
+            await self.__host_socket.send_json({
+                "id": "ErrorStarting",
+                "message": "Not Enough Players!"
+            })
+
+            return
+
+        for player_socket in self.__player_sockets.values():
+            await player_socket.send_json({"id": "GameStarted"})
+
     async def close(self) -> None:
         for player_socket in self.__player_sockets.values():
             await player_socket.send_json({"id": "GameClosed"})
@@ -626,15 +641,6 @@ class Game:
 
 
 games: dict[str, Game] = {}
-games_lock: Lock = Lock()
-
-
-async def close_websocket(websocket: WebSocket):
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        return
 
 
 @app.websocket("/games/ws/{username}/{password}")
@@ -647,14 +653,13 @@ async def create_game(websocket: WebSocket,
     await websocket.accept()
     if player(username, password) is None:
         await websocket.send_json({
-            "id": "Error",
+            "id": "ErrorCreating",
             "message": "Player Not Found!"
         })
         await websocket.close()
 
         return
 
-    games_lock.acquire()
     while (random_string := ''.join(choice(ascii_uppercase) for _ in range(4))) in games:
         pass
 
@@ -664,16 +669,17 @@ async def create_game(websocket: WebSocket,
         "code": random_string
     })
 
-    games_lock.release()
-
-    await close_websocket(websocket)
-    games_lock.acquire()
+    try:
+        while True:
+            data: dict[str, str] = await websocket.receive_json()
+            if data["id"] == "StartGame":
+                await games[random_string].start()
+    except WebSocketDisconnect:
+        pass
 
     await games[random_string].leave(username, password)
     await games[random_string].close()
     games.pop(random_string)
-
-    games_lock.release()
 
 
 @app.websocket("/games/ws/{game_code}/{username}/{password}")
@@ -684,39 +690,38 @@ async def join_game(websocket: WebSocket,
     await websocket.accept()
     if player(username, password) is None:
         await websocket.send_json({
-            "id": "Error",
+            "id": "ErrorJoining",
             "message": "Player Not Found!"
         })
         await websocket.close()
         return
 
-    games_lock.acquire()
     if game_code not in games:
-        games_lock.release()
         await websocket.send_json({
-            "id": "Error",
+            "id": "ErrorJoining",
             "message": "Game Not Found!"
         })
         await websocket.close()
         return
 
     if len(games[game_code]) == 3:
-        games_lock.release()
         await websocket.send_json({
-            "id": "Error",
+            "id": "ErrorJoining",
             "message": "Game Full!"
         })
         await websocket.close()
         return
 
     await games[game_code].join(username, password, websocket)
-    games_lock.release()
 
-    await close_websocket(websocket)
-    games_lock.acquire()
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+
     if game_code in games:
         await games[game_code].leave(username, password)
-    games_lock.release()
 
 # endregion
 
