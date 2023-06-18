@@ -3,8 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using WebSocketSharp;
 
 [System.Serializable]
 public class ServerSession : MonoBehaviour
@@ -29,7 +31,9 @@ public class ServerSession : MonoBehaviour
     private static List<Car> _cars = new();
 
     //  Consts
-    private const string serverURL = "http://34.118.0.97:80";
+    private const string serverIP = "127.0.0.1:80";
+    private const string serverHTTPURL = "http://" + serverIP;
+    private const string serverWSURL = "ws://" + serverIP;
     private static string credentialsFile = "";
 
     // Properties
@@ -52,11 +56,28 @@ public class ServerSession : MonoBehaviour
     public static int CurrentCarSteering => CurrentGameCar.steering + CurrentCar.upgrades.steering;
 
     private static ServerSession session;
+    private static WebSocket socket;
+    private static Queue<Action> actions;
 
     void Awake()
     {
+        actions = new Queue<Action>();
         session = this;
         credentialsFile = Application.persistentDataPath + "/credentials.dat";
+    }
+
+    private void Update()
+    {
+        while (actions.Count > 0)
+        {
+            Action action = null;
+            lock (actions)
+            {
+                action = actions.Dequeue();
+            }
+
+            action?.Invoke();
+        }
     }
 
     public static void CreateUser(
@@ -82,7 +103,7 @@ public class ServerSession : MonoBehaviour
         Action createUserFailedCallback
     )
     {
-        UnityWebRequest postRequest = new UnityWebRequest($"{serverURL}/players/register", "POST");
+        UnityWebRequest postRequest = new UnityWebRequest($"{serverHTTPURL}/players/register", "POST");
         byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(
             $"{{ " +
             $"\"username\": \"{username}\", " +
@@ -102,11 +123,11 @@ public class ServerSession : MonoBehaviour
 
         if (postRequest.result == UnityWebRequest.Result.ConnectionError || postRequest.responseCode != 200)
         {
-            createUserFailedCallback.Invoke();
+            PerformAction(createUserFailedCallback);
         }
         else
         {
-            createUserSuccessfulCallback.Invoke();
+            PerformAction(createUserSuccessfulCallback);
         }
     }
 
@@ -120,13 +141,13 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator SelectCarIndex(int newCarIndex, Action carSelectedSuccessfully)
     {
-        UnityWebRequest getRequest = UnityWebRequest.Put($"{serverURL}/players/cars?username={_loggedUsername}&password={_loggedPassword}&car_index={newCarIndex}", "");
+        UnityWebRequest getRequest = UnityWebRequest.Put($"{serverHTTPURL}/players/cars?username={_loggedUsername}&password={_loggedPassword}&car_index={newCarIndex}", "");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
             _selectedCarIndex = newCarIndex;
-            carSelectedSuccessfully.Invoke();
+            PerformAction(carSelectedSuccessfully);
         }
     }
 
@@ -140,13 +161,13 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator SelectSkinIndex(int newSkinIndex, Action skinSelectedSuccessfully)
     {
-        UnityWebRequest getRequest = UnityWebRequest.Put($"{serverURL}/players/cars/skins?username={_loggedUsername}&password={_loggedPassword}&car_index={_selectedCarIndex}&skin_index={newSkinIndex}", "");
+        UnityWebRequest getRequest = UnityWebRequest.Put($"{serverHTTPURL}/players/cars/skins?username={_loggedUsername}&password={_loggedPassword}&car_index={_selectedCarIndex}&skin_index={newSkinIndex}", "");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
             _ownedCars[_selectedCarIndex].selected_skin = newSkinIndex;
-            skinSelectedSuccessfully.Invoke();
+            PerformAction(skinSelectedSuccessfully);
         }
     }
 
@@ -161,7 +182,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator BuyCar(Car carToBuy, Action carBoughtSuccessfully)
     {
-        var uwr = UnityWebRequest.Post($"{serverURL}/players/cars?username={_loggedUsername}&password={_loggedPassword}&car_id={carToBuy.id}", "");
+        var uwr = UnityWebRequest.Post($"{serverHTTPURL}/players/cars?username={_loggedUsername}&password={_loggedPassword}&car_id={carToBuy.id}", "");
 
         yield return uwr.SendWebRequest();
 
@@ -180,7 +201,7 @@ public class ServerSession : MonoBehaviour
                 }
             });
 
-            carBoughtSuccessfully.Invoke();
+            PerformAction(carBoughtSuccessfully);
         }
     }
 
@@ -195,7 +216,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator BuyUpgrade(string upgradeID, int price, Action upgradeBoughtSuccessfully)
     {
-        var uwr = UnityWebRequest.Put($"{serverURL}/players/cars/upgrades?username={_loggedUsername}&password={_loggedPassword}&car_id={CurrentGameCar.id}&upgrade_id={upgradeID}", "");
+        var uwr = UnityWebRequest.Put($"{serverHTTPURL}/players/cars/upgrades?username={_loggedUsername}&password={_loggedPassword}&car_id={CurrentGameCar.id}&upgrade_id={upgradeID}", "");
 
         yield return uwr.SendWebRequest();
 
@@ -216,7 +237,7 @@ public class ServerSession : MonoBehaviour
                     break;
             }
 
-            upgradeBoughtSuccessfully.Invoke();
+            PerformAction(upgradeBoughtSuccessfully);
         }
     }
 
@@ -232,7 +253,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator BuySkin(Skin skin, Action skinBoughtSuccessfully)
     {
-        var uwr = UnityWebRequest.Post($"{serverURL}/players/cars/skins?username={_loggedUsername}&password={_loggedPassword}&car_id={CurrentGameCar.id}&skin_id={skin.id}", "");
+        var uwr = UnityWebRequest.Post($"{serverHTTPURL}/players/cars/skins?username={_loggedUsername}&password={_loggedPassword}&car_id={CurrentGameCar.id}&skin_id={skin.id}", "");
 
         yield return uwr.SendWebRequest();
 
@@ -241,7 +262,7 @@ public class ServerSession : MonoBehaviour
             _userMoney -= skin.price;
             CurrentCar.skins.Add(skin.id);
 
-            skinBoughtSuccessfully.Invoke();
+            PerformAction(skinBoughtSuccessfully);
         }
     }
 
@@ -275,7 +296,7 @@ public class ServerSession : MonoBehaviour
                 painting.data.Add(b);
             }
 
-            var uwr = new UnityWebRequest($"{serverURL}/players/paintings?username={_loggedUsername}&password={_loggedPassword}", "POST");
+            var uwr = new UnityWebRequest($"{serverHTTPURL}/players/paintings?username={_loggedUsername}&password={_loggedPassword}", "POST");
             byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(JsonUtility.ToJson(painting));
 
             uwr.uploadHandler = new UploadHandlerRaw(jsonToSend);
@@ -296,7 +317,7 @@ public class ServerSession : MonoBehaviour
                 };
 
                 _userPaintings.Add(newPainting);
-                paintingAdded.Invoke(newPainting);
+                PerformAction(() => paintingAdded.Invoke(newPainting));
             }
         }
     }
@@ -308,13 +329,13 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator AddFriend(string friendUsername, Action friendAddedSuccessfully)
     {
-        UnityWebRequest getRequest = UnityWebRequest.Post($"{serverURL}/players/friends?username={_loggedUsername}&password={_loggedPassword}&friend_username={friendUsername}", "");
+        UnityWebRequest getRequest = UnityWebRequest.Post($"{serverHTTPURL}/players/friends?username={_loggedUsername}&password={_loggedPassword}&friend_username={friendUsername}", "");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
             _userFriends.Add(friendUsername);
-            friendAddedSuccessfully.Invoke();
+            PerformAction(friendAddedSuccessfully);
         }
     }
 
@@ -325,12 +346,12 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator DeleteExistingFriend(string friendUsername, Action friendDeletedSuccessfully)
     {
-        UnityWebRequest getRequest = UnityWebRequest.Delete($"{serverURL}/players/friends?username={_loggedUsername}&password={_loggedPassword}&friend_username={friendUsername}");
+        UnityWebRequest getRequest = UnityWebRequest.Delete($"{serverHTTPURL}/players/friends?username={_loggedUsername}&password={_loggedPassword}&friend_username={friendUsername}");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
-            friendDeletedSuccessfully.Invoke();
+            PerformAction(friendDeletedSuccessfully);
         }
     }
 
@@ -371,7 +392,7 @@ public class ServerSession : MonoBehaviour
         }
         else
         {
-            loginFailedCallback.Invoke();
+            PerformAction(loginFailedCallback);
         }
     }
 
@@ -395,7 +416,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator TryLogin(string username, string password, bool rememberUser, Action loginSuccessfulCallback, Action loginFailedCallback)
     {
-        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverURL}/players/login?username={username}&password={password}");
+        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/login?username={username}&password={password}");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result == UnityWebRequest.Result.ConnectionError)
@@ -405,11 +426,11 @@ public class ServerSession : MonoBehaviour
                 File.Delete(credentialsFile);
             }
 
-            loginFailedCallback.Invoke();
+            PerformAction(loginFailedCallback);
         }
         else if (getRequest.responseCode != 200)
         {
-            loginFailedCallback.Invoke();
+            PerformAction(loginFailedCallback);
         }
         else
         {
@@ -442,12 +463,12 @@ public class ServerSession : MonoBehaviour
         yield return GetUserSelectedCar();
         yield return GetAllCars();
 
-        loginSuccessfulCallback.Invoke();
+        PerformAction(loginSuccessfulCallback);
     }
 
     IEnumerator GetUserMoney()
     {
-        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverURL}/players/stats/money?username={_loggedUsername}&password={_loggedPassword}");
+        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/stats/money?username={_loggedUsername}&password={_loggedPassword}");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
@@ -481,7 +502,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator GetUserPaintings()
     {
-        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverURL}/players/paintings?username={_loggedUsername}&password={_loggedPassword}");
+        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/paintings?username={_loggedUsername}&password={_loggedPassword}");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
@@ -517,7 +538,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator GetFriends()
     {
-        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverURL}/players/friends?username={_loggedUsername}&password={_loggedPassword}");
+        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/friends?username={_loggedUsername}&password={_loggedPassword}");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
@@ -541,7 +562,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator GetAchievements()
     {
-        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverURL}/players/achievements?username={_loggedUsername}&password={_loggedPassword}");
+        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/achievements?username={_loggedUsername}&password={_loggedPassword}");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
@@ -575,7 +596,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator GetUserOwnedCars()
     {
-        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverURL}/players/cars?username={_loggedUsername}&password={_loggedPassword}");
+        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/cars?username={_loggedUsername}&password={_loggedPassword}");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
@@ -592,7 +613,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator GetUserSelectedCar()
     {
-        UnityWebRequest selectedCarRequest = UnityWebRequest.Get($"{serverURL}/players/cars/selected?username={_loggedUsername}&password={_loggedPassword}");
+        UnityWebRequest selectedCarRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/cars/selected?username={_loggedUsername}&password={_loggedPassword}");
         yield return selectedCarRequest.SendWebRequest();
 
         if (selectedCarRequest.result != UnityWebRequest.Result.ConnectionError && selectedCarRequest.responseCode == 200)
@@ -637,7 +658,7 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator GetAllCars()
     {
-        var getRequest = UnityWebRequest.Get($"{serverURL}/cars");
+        var getRequest = UnityWebRequest.Get($"{serverHTTPURL}/cars");
 
         //Send the request then wait here until it returns
         yield return getRequest.SendWebRequest();
@@ -656,6 +677,7 @@ public class ServerSession : MonoBehaviour
     [Serializable]
     public class UserStats
     {
+        public string username;
         public string description;
         public PlayerCar selected_car;
         public int games_won;
@@ -665,12 +687,159 @@ public class ServerSession : MonoBehaviour
 
     IEnumerator GetUserStats(string username, Action<UserStats> userDetailsRetreived)
     {
-        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverURL}/players/stats?username={username}");
+        UnityWebRequest getRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/stats?username={username}");
         yield return getRequest.SendWebRequest();
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
-            userDetailsRetreived.Invoke(JsonUtility.FromJson<UserStats>(getRequest.downloadHandler.text));
+            PerformAction(() =>
+            userDetailsRetreived.Invoke(JsonUtility.FromJson<UserStats>(getRequest.downloadHandler.text)));
+            
         }
+    }
+
+    [Serializable]
+    public class UserGameStats
+    {
+        public string username;
+        public PlayerCar selected_car;
+    }
+
+    static void PerformAction(Action action)
+    {
+        lock (actions)
+        {
+            actions.Enqueue(action);
+        }
+    }
+
+    public static void CreateGame(Action<string> gameCreated, 
+                                  Action<UserGameStats> userJoined,
+                                  Action<string> userLeft)
+    {
+        Task.Run(() =>
+        {
+            socket = new WebSocket($"{serverWSURL}/games/ws/{_loggedUsername}/{_loggedPassword}");
+            socket.OnMessage += (sender, e) =>
+            {
+                WebSocketMessage message = JsonUtility.FromJson<WebSocketMessage>(e.Data);
+                if (message.id == "UserJoined")
+                {
+                    UserJoinedMessage userJoinedMessage = JsonUtility.FromJson<UserJoinedMessage>(e.Data);
+                    PerformAction(() => userJoined.Invoke(new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car }));
+                }
+                else if (message.id == "UserLeft")
+                {
+                    UserLeftMessage userLeftMessage = JsonUtility.FromJson<UserLeftMessage>(e.Data);
+                    PerformAction(() => userLeft.Invoke(userLeftMessage.username));
+                }
+                else if (message.id == "GameCreated")
+                {
+                    GameCreatedMessage gameCreatedMessage = JsonUtility.FromJson<GameCreatedMessage>(e.Data);
+                    PerformAction(() => gameCreated.Invoke(gameCreatedMessage.code));
+                }
+                else if (message.id == "Error")
+                {
+                    socket.Close();
+                }
+            };
+
+            socket.Connect();
+        });
+    }
+
+    [Serializable]
+    class ErrorMessage
+    {
+        public string id;
+        public string message;
+    }
+
+    [Serializable]
+    class JoinMessage
+    {
+        public string id;
+        public List<UserGameStats> players;
+    }
+
+    public static bool IsSocketBusy() { return socket != null && socket.IsAlive; }
+
+    public static void JoinGame(string code,
+                                Action<List<UserGameStats>> gameJoined,
+                                Action<string> errorJoining, 
+                                Action<UserGameStats> userJoined,
+                                Action<string> userLeft,
+                                Action gameClosed)
+    {
+        Task.Run(() =>
+        {
+            socket = new WebSocket($"{serverWSURL}/games/ws/{code}/{_loggedUsername}/{_loggedPassword}");
+            socket.OnMessage += (sender, e) =>
+            {
+                WebSocketMessage message = JsonUtility.FromJson<WebSocketMessage>(e.Data);
+                if (message.id == "GameJoined")
+                {
+                    JoinMessage joinMessage = JsonUtility.FromJson<JoinMessage>(e.Data);
+                    PerformAction(() => gameJoined.Invoke(joinMessage.players));
+                }
+                else if (message.id == "UserJoined")
+                {
+                    UserJoinedMessage userJoinedMessage = JsonUtility.FromJson<UserJoinedMessage>(e.Data);
+                    PerformAction(() => userJoined.Invoke(new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car }));
+                }
+                else if (message.id == "UserLeft")
+                {
+                    UserLeftMessage userLeftMessage = JsonUtility.FromJson<UserLeftMessage>(e.Data);
+                    PerformAction(() => userLeft.Invoke(userLeftMessage.username));
+                }
+                else if (message.id == "GameClosed")
+                {
+                    PerformAction(gameClosed);
+                    socket.Close();
+                }
+                else if (message.id == "Error")
+                {
+                    ErrorMessage errorMessage = JsonUtility.FromJson<ErrorMessage>(e.Data);
+
+                    PerformAction(() => errorJoining.Invoke(errorMessage.message));
+                    socket.Close();
+                }
+            };
+
+            socket.Connect();
+        });
+    }
+
+    public static void CloseGameSocket()
+    {
+        socket.Close();
+    }
+
+    [Serializable]
+    class WebSocketMessage
+    {
+        public string id;
+    }
+
+    [Serializable]
+    class UserJoinedMessage
+    {
+        public string id;
+        public string username;
+        public PlayerCar selected_car;
+    }
+
+    [Serializable]
+    class GameCreatedMessage
+    {
+        public string id;
+        public string code;
+    }
+
+    [Serializable]
+    class UserLeftMessage
+    {
+        public string id;
+        public string username;
     }
 }

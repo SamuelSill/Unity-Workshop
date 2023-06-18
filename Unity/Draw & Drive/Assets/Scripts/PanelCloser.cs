@@ -3,7 +3,6 @@ using UnityEngine;
 public class PanelCloser : MonoBehaviour
 {
     private bool isPanelOpen;
-    public GameObject panel;
 
     // Start is called before the first frame update
     void Start()
@@ -29,13 +28,13 @@ public class PanelCloser : MonoBehaviour
 
     public void PanelOpened()
     {
-        panel.SetActive(true);
+        gameObject.SetActive(true);
         isPanelOpen = true;
     }
 
     public void PanelClosed()
     {
-        panel.SetActive(false);
+        gameObject.SetActive(false);
         isPanelOpen = false;
     }
 }

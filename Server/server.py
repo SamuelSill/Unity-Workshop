@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import FastAPI, Response, status
+from fastapi import FastAPI, Response, status, WebSocket, WebSocketDisconnect
 
 from pymongo.database import Database
 from pymongo.mongo_client import MongoClient
@@ -8,6 +8,8 @@ from pymongo.server_api import ServerApi
 import gridfs
 
 from pydantic import BaseModel
+
+from threading import Lock
 
 # region Resources
 
@@ -139,6 +141,7 @@ def get_stats(username: str,
 
     response.status_code = status.HTTP_200_OK
     return {
+        "username": username,
         "description": player_found["description"],
         "games_lost": player_found["games_lost"],
         "games_won": player_found["games_won"],
@@ -552,6 +555,168 @@ def add_achievement(username: str,
     })
 
     return "Achievement Saved"
+
+
+class Game:
+    def __init__(self,
+                 username: str,
+                 game_host: WebSocket):
+        self.__player_sockets: dict[str, WebSocket] = {username: game_host}
+
+    async def join(self,
+                   username: str,
+                   password: str,
+                   websocket: WebSocket) -> bool:
+        if (player_found := player(username, password)) is None:
+            return False
+
+        if username in self.__player_sockets:
+            return False
+
+        for player_socket in self.__player_sockets.values():
+            await player_socket.send_json({
+                "id": "UserJoined",
+                "username": username,
+                "selected_car": player_found["cars"][player_found["selected_car"]]
+            })
+
+        self.__player_sockets[username] = websocket
+        await websocket.send_json({
+            "id": "GameJoined",
+            "players": [
+                {
+                    "username": player_username,
+                    "selected_car": players_collection.find_one({
+                        "username": player_username
+                    })["cars"][player_found["selected_car"]]
+                }
+                for player_username in self.__player_sockets
+                if player_username != username
+            ]
+        })
+
+        return True
+
+    async def leave(self,
+                    username: str,
+                    password: str) -> bool:
+        if player(username, password) is None:
+            return False
+
+        if username not in self.__player_sockets:
+            return False
+
+        self.__player_sockets.pop(username)
+
+        for player_socket in self.__player_sockets.values():
+            await player_socket.send_json({
+                "id": "UserLeft",
+                "username": username,
+            })
+
+        return True
+
+    async def close(self) -> None:
+        for player_socket in self.__player_sockets.values():
+            await player_socket.send_json({"id": "GameClosed"})
+        self.__player_sockets = {}
+
+    def __len__(self) -> int:
+        return len(self.__player_sockets)
+
+
+games: dict[str, Game] = {}
+games_lock: Lock = Lock()
+
+
+async def close_websocket(websocket: WebSocket):
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        return
+
+
+@app.websocket("/games/ws/{username}/{password}")
+async def create_game(websocket: WebSocket,
+                      username: str,
+                      password: str):
+    from string import ascii_uppercase
+    from random import choice
+
+    await websocket.accept()
+    if player(username, password) is None:
+        await websocket.send_json({
+            "id": "Error",
+            "message": "Player Not Found!"
+        })
+        await websocket.close()
+
+        return
+
+    games_lock.acquire()
+    while (random_string := ''.join(choice(ascii_uppercase) for _ in range(4))) in games:
+        pass
+
+    games[random_string] = Game(username, websocket)
+    await websocket.send_json({
+        "id": "GameCreated",
+        "code": random_string
+    })
+
+    games_lock.release()
+
+    await close_websocket(websocket)
+    games_lock.acquire()
+
+    await games[random_string].leave(username, password)
+    await games[random_string].close()
+    games.pop(random_string)
+
+    games_lock.release()
+
+
+@app.websocket("/games/ws/{game_code}/{username}/{password}")
+async def join_game(websocket: WebSocket,
+                    game_code: str,
+                    username: str,
+                    password: str):
+    await websocket.accept()
+    if player(username, password) is None:
+        await websocket.send_json({
+            "id": "Error",
+            "message": "Player Not Found!"
+        })
+        await websocket.close()
+        return
+
+    games_lock.acquire()
+    if game_code not in games:
+        games_lock.release()
+        await websocket.send_json({
+            "id": "Error",
+            "message": "Game Not Found!"
+        })
+        await websocket.close()
+        return
+
+    if len(games[game_code]) == 3:
+        games_lock.release()
+        await websocket.send_json({
+            "id": "Error",
+            "message": "Game Full!"
+        })
+        await websocket.close()
+        return
+
+    await games[game_code].join(username, password, websocket)
+    games_lock.release()
+
+    await close_websocket(websocket)
+    games_lock.acquire()
+    if game_code in games:
+        await games[game_code].leave(username, password)
+    games_lock.release()
 
 # endregion
 

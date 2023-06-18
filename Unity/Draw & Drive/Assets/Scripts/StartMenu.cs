@@ -6,33 +6,28 @@ using UnityEngine.UI;
 
 public class StartMenu : MonoBehaviour
 {
+    public GameObject startMenu;
+    public GameObject gameMenu;
+
+    public TMP_InputField joinCodeInput;
+
     public GameObject selectedCarObject;
     public TMP_Text usernameText;
+    public TMP_Text gameCodeText;
 
     public GameObject friendBox1;
-    public GameObject friendBoxButton1;
     public GameObject friendBox2;
-    public GameObject friendBoxButton2;
-    public GameObject FriendBoxSelected => friendSelected == 1 ? friendBox1 : friendBox2;
-    public GameObject FriendBoxButtonSelected => friendSelected == 1 ? friendBoxButton1 : friendBoxButton2;
 
     int friendSelected;
 
     // Start is called before the first frame update
     public void Start()
     {
-        if (ServerSession.OwnedCars.Count > 0)
-        {
-            selectedCarObject.GetComponent<Image>().sprite =
-                CarSprites.GetCarSprite(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
-            usernameText.text = ServerSession.Username;
-        }
     }
 
     // Update is called once per frame
     void Update()
     {
-
     }
 
     public void SelectFriendBox(int friendNumberSelected)
@@ -40,38 +35,77 @@ public class StartMenu : MonoBehaviour
         friendSelected = friendNumberSelected;
     }
 
-    public void DisplayFriend(string friendUsername, Action OnSuccess)
+    void LoadStartMenu(string gameCode, List<ServerSession.UserGameStats> players)
     {
-        if (friendBox1.GetComponentInChildren<TMP_Text>().text != friendUsername &&
-            friendBox2.GetComponentInChildren<TMP_Text>().text != friendUsername)
+        startMenu.SetActive(true);
+        gameMenu.SetActive(false);
+
+        selectedCarObject.GetComponent<Image>().sprite =
+            CarSprites.GetCarSprite(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
+        usernameText.text = ServerSession.Username;
+
+        friendBox1.GetComponent<Image>().sprite = null;
+        friendBox1.GetComponentInChildren<TMP_Text>().text = "";
+
+        friendBox2.GetComponent<Image>().sprite = null;
+        friendBox2.GetComponentInChildren<TMP_Text>().text = "";
+
+        gameCodeText.text = gameCode;
+
+        foreach (var player in players)
         {
-            FriendBoxButtonSelected.SetActive(false);
-            ServerSession.GetUserDetails(
-                friendUsername,
-                (userDetails) =>
-                {
-                    FriendBoxSelected.GetComponent<Image>().sprite =
-                        CarSprites.GetCarSprite(userDetails.selected_car.id, userDetails.selected_car.skins[userDetails.selected_car.selected_skin]);
-                    FriendBoxSelected.GetComponentInChildren<TMP_Text>().text = friendUsername;
-                    OnSuccess.Invoke();
-                }
+            ShowJoinedPlayer(player);
+        }
+    }
+
+    void ShowJoinedPlayer(ServerSession.UserGameStats player)
+    {
+        GameObject friendBox = friendBox1.GetComponentInChildren<TMP_Text>().text == null ? friendBox1 : friendBox2;
+        friendBox.GetComponent<Image>().sprite =
+                    CarSprites.GetCarSprite(player.selected_car.id, player.selected_car.skins[player.selected_car.selected_skin]);
+        friendBox.GetComponentInChildren<TMP_Text>().text = player.username;
+    }
+
+    void RemoveJoinedPlayer(string username)
+    {
+        GameObject friendBox = friendBox1.GetComponentInChildren<TMP_Text>().text == username ? friendBox1 : friendBox2;
+        friendBox.GetComponent<Image>().sprite = null;
+        friendBox.GetComponentInChildren<TMP_Text>().text = "";
+    }
+
+    public void CreateButtonPressed()
+    {
+        if (!ServerSession.IsSocketBusy())
+        {
+            ServerSession.CreateGame(
+                gameCode => LoadStartMenu(gameCode, new List<ServerSession.UserGameStats>()),
+                ShowJoinedPlayer,
+                RemoveJoinedPlayer
             );
         }
     }
 
-    public void ClearStartMenu()
+    public void BackButtonPressed()
     {
-        friendBox1.GetComponent<Image>().sprite = null;
-        friendBox1.GetComponentInChildren<TMP_Text>().text = "";
-        friendBoxButton1.SetActive(true);
-
-        friendBox2.GetComponent<Image>().sprite = null;
-        friendBox2.GetComponentInChildren<TMP_Text>().text = "";
-        friendBoxButton2.SetActive(true);
+        ServerSession.CloseGameSocket();
+        gameMenu.SetActive(true);
+        startMenu.SetActive(false);
     }
 
-    public void StartButtonPressed()
+    public void JoinTextUpdated()
     {
+        joinCodeInput.text = joinCodeInput.text.ToUpper().Substring(0, Math.Min(4, joinCodeInput.text.Length));
 
+        if (joinCodeInput.text.Length == 4 && !ServerSession.IsSocketBusy())
+        {
+            ServerSession.JoinGame(
+                joinCodeInput.text,
+                (players) => LoadStartMenu(joinCodeInput.text, players),
+                (message) => { Debug.Log(message); },
+                ShowJoinedPlayer,
+                RemoveJoinedPlayer,
+                BackButtonPressed
+            );
+        }
     }
 }

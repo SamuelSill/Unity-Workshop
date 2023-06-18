@@ -1,4 +1,6 @@
 fastapi
 pydantic
-uvicorn
+uvicorn[standard]
 pymongo
+wsproto
+websocket
