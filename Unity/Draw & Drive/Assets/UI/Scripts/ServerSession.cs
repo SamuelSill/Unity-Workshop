@@ -679,6 +679,43 @@ public class ServerSession : MonoBehaviour
         }
     }
 
+    public static void AddNewGame(bool hasWon, float accuracy, Action gameSaved, Action gameFailedSaving)
+    {
+        session.StartCoroutine(session.AddFinishedGame(hasWon, accuracy, gameSaved, gameFailedSaving));
+    }
+
+    [Serializable]
+    class NewGame
+    {
+        public bool win;
+        public float accuracy;
+    }
+
+    IEnumerator AddFinishedGame(bool hasWon, float accuracy, Action gameSaved, Action gameFailedSaving)
+    {
+        NewGame painting = new NewGame();
+        painting.win = hasWon;
+        painting.accuracy = accuracy;
+
+        var uwr = new UnityWebRequest($"{serverHTTPURL}/players/games?username={_loggedUsername}&password={_loggedPassword}", "POST");
+        byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(JsonUtility.ToJson(painting));
+
+        uwr.uploadHandler = new UploadHandlerRaw(jsonToSend);
+        uwr.downloadHandler = new DownloadHandlerBuffer();
+        uwr.SetRequestHeader("Content-Type", "application/json");
+
+        yield return uwr.SendWebRequest();
+
+        if (uwr.result == UnityWebRequest.Result.ConnectionError || uwr.responseCode != 200)
+        {
+            PerformAction(gameFailedSaving);
+        }
+        else
+        {
+            PerformAction(gameSaved);
+        }
+    }
+
     public static void GetUserDetails(string username, Action<UserStats> userDetailsRetreived)
     {
         session.StartCoroutine(session.GetUserStats(username, userDetailsRetreived));
@@ -704,7 +741,6 @@ public class ServerSession : MonoBehaviour
         {
             PerformAction(() =>
             userDetailsRetreived.Invoke(JsonUtility.FromJson<UserStats>(getRequest.downloadHandler.text)));
-            
         }
     }
 
