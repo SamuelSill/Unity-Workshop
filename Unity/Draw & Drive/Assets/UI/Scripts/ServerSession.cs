@@ -56,7 +56,7 @@ public class ServerSession : MonoBehaviour
     public static int CurrentCarSteering => CurrentGameCar.steering + CurrentCar.upgrades.steering;
     public static bool IsHost { get; private set; }
     public static string HostIp => hostIp;
-    public static List<int> CurrentGamePainting => currentGamePainting;
+    public static Texture2D CurrentGamePainting { get; private set; }
     public static string CurrentTeam => currentTeam;
 
     // Singleton
@@ -65,7 +65,6 @@ public class ServerSession : MonoBehaviour
     // Game Related Members
     private static WebSocket socket;
     private static string hostIp;
-    private static List<int> currentGamePainting;
     private static string currentTeam;
 
     private static Queue<Action> actions;
@@ -724,6 +723,22 @@ public class ServerSession : MonoBehaviour
         }
     }
 
+    static void OnGameStarted(GameStartedMessage gameStartedMessage)
+    {
+        byte[] data = new byte[gameStartedMessage.painting.Count];
+        for (int index = 0; index < data.Length; index++)
+        {
+            data[index] = (byte)gameStartedMessage.painting[index];
+        }
+
+        CurrentGamePainting = new Texture2D(2, 2);
+        CurrentGamePainting.LoadImage(data);
+
+        currentTeam = gameStartedMessage.team;
+        hostIp = gameStartedMessage.host_ip;
+        IsHost = gameStartedMessage.is_host;
+    }
+
     public static void CreateGame(Action<string> gameCreated, 
                                   Action<UserGameStats> userJoined,
                                   Action<string> userLeft,
@@ -752,12 +767,7 @@ public class ServerSession : MonoBehaviour
                 }
                 else if (message.id == "GameStarted")
                 {
-                    GameStartedMessage gameStartedMessage = JsonUtility.FromJson<GameStartedMessage>(e.Data);
-                    currentGamePainting = gameStartedMessage.painting;
-                    currentTeam = gameStartedMessage.team;
-                    hostIp = gameStartedMessage.host_ip;
-                    IsHost = gameStartedMessage.is_host;
-
+                    PerformAction(() => OnGameStarted(JsonUtility.FromJson<GameStartedMessage>(e.Data)));
                     PerformAction(gameStarted);
                 }
                 else if (message.id == "ErrorCreating")
@@ -829,12 +839,7 @@ public class ServerSession : MonoBehaviour
                 }
                 else if (message.id == "GameStarted")
                 {
-                    GameStartedMessage gameStartedMessage = JsonUtility.FromJson<GameStartedMessage>(e.Data);
-                    hostIp = gameStartedMessage.host_ip;
-                    currentGamePainting = gameStartedMessage.painting;
-                    currentTeam = gameStartedMessage.team;
-                    IsHost = gameStartedMessage.is_host;
-
+                    PerformAction(() => OnGameStarted(JsonUtility.FromJson<GameStartedMessage>(e.Data)));
                     PerformAction(gameStarted);
                 }
                 else if (message.id == "ErrorJoining")

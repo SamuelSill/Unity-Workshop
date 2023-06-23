@@ -1783,6 +1783,10 @@ PrefabInstance:
       propertyPath: networkManager
       value: 
       objectReference: {fileID: 1838216717}
+    - target: {fileID: 3284633034448203202, guid: ed9d92e25bde1fa4c81de39a2f6689df, type: 3}
+      propertyPath: paintingToDraw
+      value: 
+      objectReference: {fileID: 333878372}
     - target: {fileID: 3284633034448203203, guid: ed9d92e25bde1fa4c81de39a2f6689df, type: 3}
       propertyPath: m_SizeDelta.x
       value: 0

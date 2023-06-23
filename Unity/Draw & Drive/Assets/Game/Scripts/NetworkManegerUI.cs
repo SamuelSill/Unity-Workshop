@@ -8,9 +8,16 @@ using UnityEngine.UI;
 public class NetworkManegerUI : MonoBehaviour
 {
     public NetworkManager networkManager;
+    public Image paintingToDraw;
 
     private void Start()
     {
+        paintingToDraw.sprite = Sprite.Create(
+            ServerSession.CurrentGamePainting,
+            new Rect(0, 0, ServerSession.CurrentGamePainting.width, ServerSession.CurrentGamePainting.height),
+            new Vector2(0.5f, 0.5f)
+        );
+
         var unityTransport = networkManager.GetComponent<UnityTransport>();
         unityTransport.SetConnectionData(ServerSession.HostIp, unityTransport.ConnectionData.Port);
 
