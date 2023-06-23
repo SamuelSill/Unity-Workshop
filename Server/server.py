@@ -1,5 +1,6 @@
 from typing import Optional
 from fastapi import FastAPI, Response, status, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse
 
 from pymongo.database import Database
 from pymongo.mongo_client import MongoClient
@@ -109,6 +110,12 @@ def get_login(username: str,
 
     response.status_code = status.HTTP_200_OK
     return "Success"
+
+
+@app.get("/games/gyro_page")
+def get_gyro_page():
+    with open("gyro_html.html", "r") as gyro_html_file:
+        return HTMLResponse(gyro_html_file.read())
 
 
 # endregion
@@ -629,7 +636,8 @@ class Game:
             return
 
         for player_socket in self.__player_sockets.values():
-            await player_socket.send_json({"id": "GameStarted"})
+            await player_socket.send_json({"id": "GameStarted",
+                                           "ip": self.__host_socket.client.host})
 
     async def close(self) -> None:
         for player_socket in self.__player_sockets.values():
