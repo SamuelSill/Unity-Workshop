@@ -1,11 +1,16 @@
 using System;
 using System.Collections.Generic;
 using TMPro;
+using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class StartMenu : MonoBehaviour
 {
+    public string gameScene;
+
     public GameObject startMenu;
     public GameObject gameMenu;
 
@@ -15,6 +20,7 @@ public class StartMenu : MonoBehaviour
     public GameObject selectedCarObject;
     public TMP_Text usernameText;
     public TMP_Text gameCodeText;
+    public GameObject matchingText;
 
     public GameObject friendBox1;
     public GameObject friendBox2;
@@ -38,6 +44,7 @@ public class StartMenu : MonoBehaviour
         startButton.SetActive(isHost);
         startMenu.SetActive(true);
         gameMenu.SetActive(false);
+        matchingText.SetActive(false);
 
         selectedCarObject.GetComponent<Image>().sprite =
             CarSprites.GetCarSprite(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
@@ -74,7 +81,7 @@ public class StartMenu : MonoBehaviour
 
     void GameStarted()
     {
-        PopupMessage.Display("Game Started!");
+        SceneManager.LoadScene(gameScene);
     }
 
     public void CreateButtonPressed()
@@ -118,6 +125,7 @@ public class StartMenu : MonoBehaviour
     {
         if (isHost)
         {
+            matchingText.SetActive(true);
             ServerSession.StartGame();
         }
     }

@@ -4,24 +4,24 @@ public class PaintCanvas : MonoBehaviour
 {
     public static Texture2D Texture { get; private set; }
 
-    public static byte[] GetAllTextureData()
+    private void InitTexture()
     {
+        if (Texture == null)
+        {
+            Texture = (Texture2D)GameObject.Instantiate(GetComponent<Renderer>().sharedMaterial.mainTexture);
+            GetComponent<Renderer>().sharedMaterial.mainTexture = Texture;
+        }
+    }
+
+    public byte[] GetAllTextureData()
+    {
+        InitTexture();
         return Texture.GetRawTextureData();
     }
 
-    private void Start()
+    internal void SetAllTextureData(byte[] textureData)
     {
-        PrepareTemporaryTexture();
-    }
-
-    private void PrepareTemporaryTexture()
-    {
-        Texture = (Texture2D)GameObject.Instantiate(GetComponent<Renderer>().material.mainTexture);
-        GetComponent<Renderer>().material.mainTexture = Texture;
-    }
-
-    internal static void SetAllTextureData(byte[] textureData)
-    {
+        InitTexture();
         Texture.LoadRawTextureData(textureData);
         Texture.Apply();
     }

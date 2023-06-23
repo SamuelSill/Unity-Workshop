@@ -54,9 +54,20 @@ public class ServerSession : MonoBehaviour
     public static int CurrentCarSpeed => CurrentGameCar.speed + CurrentCar.upgrades.speed;
     public static int CurrentCarThickness => CurrentGameCar.thickness + CurrentCar.upgrades.thickness;
     public static int CurrentCarSteering => CurrentGameCar.steering + CurrentCar.upgrades.steering;
+    public static bool IsHost { get; private set; }
+    public static string HostIp => hostIp;
+    public static List<int> CurrentGamePainting => currentGamePainting;
+    public static string CurrentTeam => currentTeam;
 
+    // Singleton
     private static ServerSession session;
+
+    // Game Related Members
     private static WebSocket socket;
+    private static string hostIp;
+    private static List<int> currentGamePainting;
+    private static string currentTeam;
+
     private static Queue<Action> actions;
 
     void Awake()
@@ -741,6 +752,12 @@ public class ServerSession : MonoBehaviour
                 }
                 else if (message.id == "GameStarted")
                 {
+                    GameStartedMessage gameStartedMessage = JsonUtility.FromJson<GameStartedMessage>(e.Data);
+                    currentGamePainting = gameStartedMessage.painting;
+                    currentTeam = gameStartedMessage.team;
+                    hostIp = gameStartedMessage.host_ip;
+                    IsHost = gameStartedMessage.is_host;
+
                     PerformAction(gameStarted);
                 }
                 else if (message.id == "ErrorCreating")
@@ -812,6 +829,12 @@ public class ServerSession : MonoBehaviour
                 }
                 else if (message.id == "GameStarted")
                 {
+                    GameStartedMessage gameStartedMessage = JsonUtility.FromJson<GameStartedMessage>(e.Data);
+                    hostIp = gameStartedMessage.host_ip;
+                    currentGamePainting = gameStartedMessage.painting;
+                    currentTeam = gameStartedMessage.team;
+                    IsHost = gameStartedMessage.is_host;
+
                     PerformAction(gameStarted);
                 }
                 else if (message.id == "ErrorJoining")
@@ -863,5 +886,15 @@ public class ServerSession : MonoBehaviour
     {
         public string id;
         public string username;
+    }
+
+    [Serializable]
+    class GameStartedMessage
+    {
+        public string id;
+        public string host_ip;
+        public bool is_host;
+        public List<int> painting;
+        public string team;
     }
 }

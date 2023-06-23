@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional
 from fastapi import FastAPI, Response, status, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
@@ -583,12 +584,14 @@ class Game:
         if username in self.__player_sockets:
             return False
 
-        for player_socket in self.__player_sockets.values():
-            await player_socket.send_json({
+        await asyncio.gather(*[
+            player_socket.send_json({
                 "id": "UserJoined",
                 "username": username,
                 "selected_car": player_found["cars"][player_found["selected_car"]]
             })
+            for player_socket in self.__player_sockets.values()
+        ])
 
         self.__player_sockets[username] = websocket
         await websocket.send_json({
@@ -617,31 +620,46 @@ class Game:
             return False
 
         self.__player_sockets.pop(username)
-
-        for player_socket in self.__player_sockets.values():
-            await player_socket.send_json({
+        await asyncio.gather(*[
+            player_socket.send_json({
                 "id": "UserLeft",
                 "username": username,
             })
+            for player_socket in self.__player_sockets.values()
+        ])
 
         return True
 
-    async def start(self) -> None:
-        if len(self.__player_sockets) < 3:
-            await self.__host_socket.send_json({
-                "id": "ErrorStarting",
-                "message": "Not Enough Players!"
+    async def start(self,
+                    other_game: "Game") -> None:
+        from random import choice
+
+        players: dict[str, WebSocket] = {**self.__player_sockets, **other_game.__player_sockets}
+
+        random_player_painting: list[int] = list(grid_fs.get(choice([
+            painting["data"]
+            for player_object in players_collection.find({
+                "username": {"$in": list(players.keys())}
             })
+            for painting in player_object["gallery"]
+        ])).read())
 
-            return
-
-        for player_socket in self.__player_sockets.values():
-            await player_socket.send_json({"id": "GameStarted",
-                                           "ip": self.__host_socket.client.host})
+        await asyncio.gather(*[
+            player_socket.send_json({
+                "id": "GameStarted",
+                "host_ip": self.__host_socket.client.host,
+                "is_host": username == self.__host,
+                "painting": random_player_painting,
+                "team": "left" if username in self.__player_sockets else "right"
+            })
+            for username, player_socket in players.items()
+        ])
 
     async def close(self) -> None:
-        for player_socket in self.__player_sockets.values():
-            await player_socket.send_json({"id": "GameClosed"})
+        await asyncio.gather(*[
+            player_socket.send_json({"id": "GameClosed"})
+            for player_socket in self.__player_sockets.values()
+        ])
         self.__player_sockets = {}
 
     def __len__(self) -> int:
@@ -649,6 +667,7 @@ class Game:
 
 
 games: dict[str, Game] = {}
+searching_game_code: str = ""
 
 
 @app.websocket("/games/ws/{username}/{password}")
@@ -658,8 +677,10 @@ async def create_game(websocket: WebSocket,
     from string import ascii_uppercase
     from random import choice
 
+    global searching_game_code
+
     await websocket.accept()
-    if player(username, password) is None:
+    if (player_found := player(username, password)) is None:
         await websocket.send_json({
             "id": "ErrorCreating",
             "message": "Player Not Found!"
@@ -668,26 +689,47 @@ async def create_game(websocket: WebSocket,
 
         return
 
-    while (random_string := ''.join(choice(ascii_uppercase) for _ in range(4))) in games:
+    if len(player_found["gallery"]) == 0:
+        await websocket.send_json({
+            "id": "ErrorCreating",
+            "message": "Can't Play without Paintings!"
+        })
+        await websocket.close()
+
+        return
+
+    while (game_code := ''.join(choice(ascii_uppercase) for _ in range(4))) in games:
         pass
 
-    games[random_string] = Game(username, websocket)
+    games[game_code] = Game(username, websocket)
     await websocket.send_json({
         "id": "GameCreated",
-        "code": random_string
+        "code": game_code
     })
 
     try:
         while True:
             data: dict[str, str] = await websocket.receive_json()
             if data["id"] == "StartGame":
-                await games[random_string].start()
+                if len(games[game_code]) < 3:
+                    await websocket.send_json({
+                        "id": "ErrorStarting",
+                        "message": "Not Enough Players!"
+                    })
+                elif searching_game_code == "":
+                    searching_game_code = game_code
+                else:
+                    await games[searching_game_code].start(games[game_code])
+                    searching_game_code = ""
     except WebSocketDisconnect:
         pass
 
-    await games[random_string].leave(username, password)
-    await games[random_string].close()
-    games.pop(random_string)
+    if searching_game_code == game_code:
+        searching_game_code = ""
+
+    await games[game_code].leave(username, password)
+    await games[game_code].close()
+    games.pop(game_code)
 
 
 @app.websocket("/games/ws/{game_code}/{username}/{password}")
@@ -696,12 +738,21 @@ async def join_game(websocket: WebSocket,
                     username: str,
                     password: str):
     await websocket.accept()
-    if player(username, password) is None:
+    if (player_found := player(username, password)) is None:
         await websocket.send_json({
             "id": "ErrorJoining",
             "message": "Player Not Found!"
         })
         await websocket.close()
+        return
+
+    if len(player_found["gallery"]) == 0:
+        await websocket.send_json({
+            "id": "ErrorCreating",
+            "message": "Can't Play without Paintings!"
+        })
+        await websocket.close()
+
         return
 
     if game_code not in games:

@@ -1,25 +1,26 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class NetworkManegerUI : MonoBehaviour
 {
-    [SerializeField] private Button serverBtn;
-    [SerializeField] private Button clientBtn;
-    [SerializeField] private Button hostBtn;
+    public NetworkManager networkManager;
 
-    private void Awake()
+    private void Start()
     {
-        serverBtn.onClick.AddListener(() => {
-            NetworkManager.Singleton.StartServer();
-            });
-        clientBtn.onClick.AddListener(() => {
-            NetworkManager.Singleton.StartClient();
-        });
-        hostBtn.onClick.AddListener(() => {
-            NetworkManager.Singleton.StartHost();
-        });
+        var unityTransport = networkManager.GetComponent<UnityTransport>();
+        unityTransport.SetConnectionData(ServerSession.HostIp, unityTransport.ConnectionData.Port);
+
+        if (ServerSession.IsHost)
+        {
+            networkManager.StartHost();
+        }
+        else
+        {
+            networkManager.StartClient();
+        }
     }
 }

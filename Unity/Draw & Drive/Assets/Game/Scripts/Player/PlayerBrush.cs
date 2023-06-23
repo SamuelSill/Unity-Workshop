@@ -38,7 +38,7 @@ public class PlayerBrush : NetworkBehaviour
         {
             return;
         }
-        var data = PaintCanvas.GetAllTextureData();
+        var data = pallet.GetAllTextureData();
         var zippeddata = data.Compress();
 
         SendFullTextureClientRpc(zippeddata);
@@ -47,7 +47,7 @@ public class PlayerBrush : NetworkBehaviour
     [ClientRpc]
     private void SendFullTextureClientRpc(byte[] textureData)
     {
-        PaintCanvas.SetAllTextureData(textureData.Decompress());
+        pallet.SetAllTextureData(textureData.Decompress());
     }
     private Vector2 WorldToPixelUV(Vector3 worldPosition, int textureWidth, int textureHeight)
     {
