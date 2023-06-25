@@ -7,9 +7,9 @@ using UnityEngine.UI;
 
 public class NetworkManegerUI : MonoBehaviour
 {
+    public static readonly int NUMBER_OF_PLAYERS = 2;
     public NetworkManager networkManager;
     public Image paintingToDraw;
-
     private void Start()
     {
         paintingToDraw.sprite = Sprite.Create(
@@ -29,5 +29,6 @@ public class NetworkManegerUI : MonoBehaviour
         {
             networkManager.StartClient();
         }
+
     }
 }

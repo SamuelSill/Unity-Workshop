@@ -5190,7 +5190,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c7131577f8213fb42ba64ab7b322c122, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  palletObject: {fileID: 8762518791903885659, guid: 21326f10ea026434ab0ca443e2eff193, type: 3}
+  palletObject:
+  - {fileID: 8762518791903885663, guid: 21326f10ea026434ab0ca443e2eff193, type: 3}
+  - {fileID: 8762518791903885663, guid: 7cb58281c00114647b9a06e96bf27393, type: 3}
   ChildrenObjectNames:
   - TopPosition
   - BottomPosition
@@ -5209,6 +5211,10 @@ MonoBehaviour:
   spawnPositionList:
   - {x: -5.5, y: 0, z: 0}
   - {x: -8, y: 4, z: 0}
+  - {x: -8, y: -4, z: 0}
+  - {x: 8, y: 4, z: 0}
+  - {x: 11, y: 0, z: 0}
+  - {x: 8, y: -4, z: 0}
 --- !u!1 &8640934995486086987
 GameObject:
   m_ObjectHideFlags: 0

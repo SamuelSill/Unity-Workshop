@@ -689,14 +689,14 @@ async def create_game(websocket: WebSocket,
 
         return
 
-    if len(player_found["gallery"]) == 0:
-        await websocket.send_json({
-            "id": "ErrorCreating",
-            "message": "Can't Play without Paintings!"
-        })
-        await websocket.close()
-
-        return
+    # if len(player_found["gallery"]) == 0:
+    #     await websocket.send_json({
+    #         "id": "ErrorCreating",
+    #         "message": "Can't Play without Paintings!"
+    #     })
+    #     await websocket.close()
+    #
+    #     return
 
     while (game_code := ''.join(choice(ascii_uppercase) for _ in range(4))) in games:
         pass
@@ -711,12 +711,12 @@ async def create_game(websocket: WebSocket,
         while True:
             data: dict[str, str] = await websocket.receive_json()
             if data["id"] == "StartGame":
-                if len(games[game_code]) < 3:
-                    await websocket.send_json({
-                        "id": "ErrorStarting",
-                        "message": "Not Enough Players!"
-                    })
-                elif searching_game_code == "":
+                # if len(games[game_code]) < 3:
+                #     await websocket.send_json({
+                #         "id": "ErrorStarting",
+                #         "message": "Not Enough Players!"
+                #     })
+                if searching_game_code == "":
                     searching_game_code = game_code
                 else:
                     await games[searching_game_code].start(games[game_code])

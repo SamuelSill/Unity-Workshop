@@ -5,26 +5,40 @@ using System.Collections.Generic;
 public class PlayerBrush : NetworkBehaviour
 {
     [SerializeField]
-    private Transform palletObject;
+    private List<GameObject> palletObject;
 
     private PaintCanvas pallet;
     private List<Transform> objectChildren;
     [SerializeField]
     private List<string> ChildrenObjectNames;
     private PlayerCustomisation PlayerCustomisation;
-    private int delayStart = 10;
     public override void OnNetworkSpawn()
     {
+        //palletObject[0] = GameObject.Find("Paint Canvas Variant 1");
+        //palletObject[1] = GameObject.Find("Paint Canvas Variant 2");
         PlayerCustomisation = GetComponent<PlayerCustomisation>();
-        if (palletObject != null)
+        if (IsOwner && ServerSession.CurrentTeam.Equals("right"))
         {
-            pallet = palletObject.GetComponent<PaintCanvas>();
-            
+            pallet = palletObject[1].GetComponent<PaintCanvas>();
+            //Debug.Log("owner right " + OwnerClientId);
+            changePlayerPalladServerRpc();
         }
         else {
-            Debug.Log("No pallet");
-            pallet = FindObjectOfType<PaintCanvas>();
+            if (pallet == null)
+            {
+               // Debug.Log("not right " + OwnerClientId);
+                pallet = palletObject[0].GetComponent<PaintCanvas>();
+            }
         }
+       // if (palletObject != null)
+       // {
+       //     pallet = palletObject[0].GetComponent<PaintCanvas>();
+        //    
+       // }
+       // else {
+        //    Debug.Log("No pallet");
+        //    pallet = FindObjectOfType<PaintCanvas>();
+        //}
         objectChildren = new List<Transform>();
         foreach (string name in ChildrenObjectNames) 
         {
@@ -41,13 +55,39 @@ public class PlayerBrush : NetworkBehaviour
         var data = pallet.GetAllTextureData();
         var zippeddata = data.Compress();
 
-        SendFullTextureClientRpc(zippeddata);
-    }
+       SendFullTextureClientRpc(zippeddata);
 
+        //data = palletObject[1].GetComponent<PaintCanvas>().GetAllTextureData();
+        //zippeddata = data.Compress();
+
+        //SendFullTextureToRightClientRpc(zippeddata);
+    }
+    [ServerRpc(RequireOwnership = false)]
+    private void changePlayerPalladServerRpc()
+    {
+        //Debug.Log("server right " + OwnerClientId);
+        if (!IsClient)
+        {
+            pallet = palletObject[1].GetComponent<PaintCanvas>();
+        }
+        changePlayerPalladClientRpc();
+    }
+    [ClientRpc]
+    private void changePlayerPalladClientRpc()
+    {
+        //Debug.Log("client right "+ OwnerClientId);
+        pallet = palletObject[1].GetComponent<PaintCanvas>();
+    }
     [ClientRpc]
     private void SendFullTextureClientRpc(byte[] textureData)
     {
-        pallet.SetAllTextureData(textureData.Decompress());
+        palletObject[0].GetComponent<PaintCanvas>().SetAllTextureData(textureData.Decompress());
+        palletObject[1].GetComponent<PaintCanvas>().SetAllTextureData(textureData.Decompress());
+    }
+    [ClientRpc]
+    private void SendFullTextureToRightClientRpc(byte[] textureData)
+    {
+        palletObject[1].GetComponent<PaintCanvas>().SetAllTextureData(textureData.Decompress());
     }
     private Vector2 WorldToPixelUV(Vector3 worldPosition, int textureWidth, int textureHeight)
     {
@@ -63,9 +103,8 @@ public class PlayerBrush : NetworkBehaviour
     }
     private void FixedUpdate()
     {
-        if (delayStart > 0) {
-            delayStart--;
-          //  return;
+        if (PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS) {
+            return;
         }
         foreach(Transform objectChild in objectChildren) {
          var playerPosition = objectChild.position;
@@ -117,7 +156,9 @@ public class PlayerBrush : NetworkBehaviour
     }
     private void BrushAreaWithColor(Vector2 pixelUV, Color color, int size)
     {
-        Texture2D texture = PaintCanvas.Texture;
+        //Debug.Log(OwnerClientId + "'s pallet = " + pallet.name);
+
+        Texture2D texture = pallet.Texture;
         for (int x = -size; x < size; x++)
         {
             for (int y = -size; y < size; y++)
@@ -138,6 +179,9 @@ public class PlayerBrush : NetworkBehaviour
             }
         }
 
-        PaintCanvas.Texture.Apply();
+        pallet.Texture.Apply();
+    }
+    public List<GameObject> getGameTextures() {
+        return palletObject;
     }
 }

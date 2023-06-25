@@ -2,8 +2,7 @@ using UnityEngine;
 
 public class PaintCanvas : MonoBehaviour
 {
-    public static Texture2D Texture { get; private set; }
-
+    public Texture2D Texture { get; private set; }
     private void InitTexture()
     {
         if (Texture == null)
