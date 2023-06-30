@@ -713,9 +713,9 @@ async def create_game(websocket: WebSocket,
             if data["id"] == "StartGame":
                 # if len(games[game_code]) < 3:
                 #     await websocket.send_json({
-                #         "id": "ErrorStarting",
-                #         "message": "Not Enough Players!"
-                #     })
+                #          "id": "ErrorStarting",
+                #          "message": "Not Enough Players!"
+                #      })
                 if searching_game_code == "":
                     searching_game_code = game_code
                 else:

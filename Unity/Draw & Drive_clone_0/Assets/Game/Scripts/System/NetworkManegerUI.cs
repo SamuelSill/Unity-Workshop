@@ -8,7 +8,7 @@ using UnityEngine.UI;
 public class NetworkManegerUI : MonoBehaviour
 {
     public static readonly int NUMBER_OF_PLAYERS = 2;
-    public NetworkManager networkManager;
+    //public NetworkManager networkManager;
     public Image paintingToDraw;
     private void Start()
     {
@@ -18,16 +18,16 @@ public class NetworkManegerUI : MonoBehaviour
             new Vector2(0.5f, 0.5f)
         );
 
-        var unityTransport = networkManager.GetComponent<UnityTransport>();
+        var unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
         unityTransport.SetConnectionData(ServerSession.HostIp, unityTransport.ConnectionData.Port);
 
         if (ServerSession.IsHost)
         {
-            networkManager.StartHost();
+            NetworkManager.Singleton.StartHost();
         }
         else
         {
-            networkManager.StartClient();
+            NetworkManager.Singleton.StartClient();
         }
 
     }

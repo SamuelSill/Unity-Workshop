@@ -4,6 +4,8 @@ using UnityEngine;
 using Unity.Netcode;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System;
+using UnityEngine.EventSystems;
 
 public class TimerStarter : NetworkBehaviour
 {
@@ -12,6 +14,7 @@ public class TimerStarter : NetworkBehaviour
     int delay = 30;
     public override void OnNetworkSpawn()
     {
+        
         timer = GetComponent<Timer>();
         timer.StartTimer();
         adjusted = false;
@@ -45,24 +48,15 @@ public class TimerStarter : NetworkBehaviour
         left = CompareTexturesByColorPercentage((Texture2D)gameImage.mainTexture, gameTextures[0].GetComponent<PaintCanvas>().Texture);
         right = CompareTexturesByColorPercentage((Texture2D)gameImage.mainTexture, gameTextures[1].GetComponent<PaintCanvas>().Texture);
         PostGameUiActions.UpdateScore(left, right);
-        ChangeSceneServerRpc();
+        //ChangeSceneServerRpc();
+        if (IsServer)
+        {
+            NetworkManager.SceneManager.LoadScene("PostGame", LoadSceneMode.Single);
+              
+        }
     }
-    [ServerRpc(RequireOwnership = false)]
-    public void ChangeSceneServerRpc()
-    {
-        // Call the scene change method on the server
-        ChangeSceneClientRpc();
-        
-        // Load the new scene on the server
-        SceneManager.LoadScene("PostGame");
-        
-    }
-    [ClientRpc]
-    public void ChangeSceneClientRpc()
-    {
-        // Call the scene change method on the server
-        SceneManager.LoadScene("PostGame");
-    }
+
+
     private float CompareTexturesByColorPercentage(Texture2D tex1, Texture2D tex2)
     {
         int matchingPixels = 0;
