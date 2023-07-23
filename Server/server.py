@@ -7,6 +7,8 @@ from pymongo.database import Database
 from pymongo.mongo_client import MongoClient
 from pymongo.collection import Collection
 from pymongo.server_api import ServerApi
+from fastapi.middleware.cors import CORSMiddleware
+
 import gridfs
 from pydantic import BaseModel
 
@@ -23,6 +25,17 @@ players_collection: Collection = mongo_db.get_collection("players")
 cars_collection: Collection = mongo_db.get_collection("cars")
 
 app = FastAPI()
+
+
+# allow CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
 
 # endregion
 
@@ -89,7 +102,7 @@ def post_register(registration_form: RegistrationForm,
             {
                 "id": "auto",
                 "upgrades": {},
-                "skins": ["blue"],
+                "skins": ["regular"],
                 "selected_skin": 0
             }
         ],

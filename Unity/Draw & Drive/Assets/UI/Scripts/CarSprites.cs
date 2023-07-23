@@ -3,30 +3,42 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+public enum CarColor
+{
+    red,
+    green,
+    blue
+}
+
 public class CarSprites : MonoBehaviour
 {
-    // Sprites
-    public Sprite blueAutoCarSprite;
-    public Sprite redAutoCarSprite;
-
-    private static Dictionary<string, Sprite> idToSpriteMap;
-
-    public static Sprite GetCarSprite(string carType, string carSkin)
+    [System.Serializable]
+    public struct TripleObjects
     {
-        return idToSpriteMap[$"{carType}.{carSkin}"];
+        public string carID;
+        public string skinID;
+        public Sprite red;
+        public Sprite green;
+        public Sprite blue;
+    }
+
+    [SerializeField]
+    private List<TripleObjects> skins;
+
+    public static List<TripleObjects> staticSkins;
+
+    public static Sprite GetCarSprite(string carType, string carSkin, CarColor color = CarColor.red)
+    {
+        var triple = staticSkins.Find(skin => skin.carID == carType && skin.skinID == carSkin);
+        if (color == CarColor.green) return triple.green;
+        if (color == CarColor.red) return triple.red;
+        return triple.blue;
     }
 
     // Start is called before the first frame update
     public void Start()
     {
-        if (idToSpriteMap == null)
-        {
-            idToSpriteMap = new()
-            {
-                ["auto.blue"] = blueAutoCarSprite,
-                ["auto.red"] = redAutoCarSprite
-            };
-        }
+        staticSkins = skins;
     }
 
     // Update is called once per frame

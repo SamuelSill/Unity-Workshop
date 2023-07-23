@@ -6,22 +6,8 @@ using System;
 
 public class PlayerCustomisation : NetworkBehaviour
 {
-    [Serializable]
-    public struct TripleObjects
-    {
-        public Texture2D red;
-        public Texture2D green;
-        public Texture2D blue;
-    }
-
-    [SerializeField]
-    private List<TripleObjects> skins;
-
     [SerializeField]
     private int skinChoice;
-
-    [SerializeField]
-    private veichleKind myVeichle;
 
     public int defultBrushSize = 3;
     public int BrushSize { get; set; }
@@ -29,90 +15,69 @@ public class PlayerCustomisation : NetworkBehaviour
     private SpriteRenderer[] playerModules;
 
     private readonly Color blue = new Color(0.2f, 0.4f, 1);
-    public  moduleColors currentColor = moduleColors.blue;
-    public enum veichleKind { 
-        Car,
-        Mortor,
-        Truck
-    }
-    public enum moduleColors { 
-        red,
-        green,
-        blue
-    }
+    public CarColor currentColor = CarColor.blue;
+
     public Color getColor() 
     {
-        if(currentColor.Equals(moduleColors.blue))
+        if(currentColor.Equals(CarColor.blue))
         {
             return blue;
         }
-        if (currentColor.Equals(moduleColors.red))
+        if (currentColor.Equals(CarColor.red))
         {
             return Color.red;
         }
-            return Color.green;
 
+        return Color.green;
     }
+
     private void adjustSize() {
-        BrushSize = (int)(defultBrushSize * transform.localScale.x);
+        BrushSize = (int)(ServerSession.CurrentCarThickness * transform.localScale.x);
     }
     public override void OnNetworkSpawn()
     {
         adjustSize();
         ChangeSkin();
-        //Transform carModule = transform.Find("PlayerModule").GetChild(0);
-        //moduleSprit = carModule.GetComponent<SpriteRenderer>();     
         playerModules = transform.Find("PlayerModule").GetComponentsInChildren<SpriteRenderer>();
         SetMoudleOfSameColor();
         
     }
     private void ChangeSkin() {
-        if (skinChoice >= skins.Count || skinChoice < 0) {
-            skinChoice = 0;
-        }
-        addNewSkinsServerRpc(skinChoice);
+        addNewSkinsServerRpc(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
     }
+
     [ServerRpc(RequireOwnership = false)]
-    private void addNewSkinsServerRpc(int playerChoice) {
-        Transform playerModule = transform.Find("PlayerModule");
-
-        deleteChildern(playerModule);
-
-       // TripleObjects veichleSkin = skins[playerChoice];
-
-        //CreateChildObject(playerModule.transform, veichleSkin.blue);
-        //CreateChildObject(playerModule.transform, veichleSkin.green);
-        //CreateChildObject(playerModule.transform, veichleSkin.red);
-        UpdateSkinsClientRpc(playerChoice);
+    private void addNewSkinsServerRpc(string carID, string skinID) {
+        UpdateSkinsClientRpc(carID, skinID);
     }
+
     [ClientRpc]
-    private void UpdateSkinsClientRpc(int playerChoice)
+    private void UpdateSkinsClientRpc(string carID, string skinID)
     {
         Transform playerModule = transform.Find("PlayerModule");
-        if(playerModule.childCount > 2){
+        deleteChildern(playerModule);
+
+        if (playerModule.childCount > 2) {
             return;
         }
 
-        TripleObjects veichleSkin = skins[playerChoice];
-        CreateChildObject(playerModule.transform, veichleSkin.blue);
-        CreateChildObject(playerModule.transform, veichleSkin.green);
-        CreateChildObject(playerModule.transform, veichleSkin.red);
-        //Debug.Log("got 1 for "+ playerModule.name);
-        
+        CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.blue));
+        CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.green));
+        CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.red));        
     }
+
     private void deleteChildern(Transform parent) {
         parent.Find("DefultView").GetComponent<SpriteRenderer>().enabled = false;
     }
-    private void CreateChildObject(Transform parent, Texture2D texture)
+    private void CreateChildObject(Transform parent, Sprite sprite)
     {
         // Create a child object
-        GameObject childObject = new GameObject(texture.name);
+        GameObject childObject = new GameObject(sprite.name);
         childObject.transform.parent = parent;
         childObject.transform.position = parent.position;
         // Add a MeshRenderer and assign the texture
         SpriteRenderer renderer = childObject.AddComponent<SpriteRenderer>();
-        renderer.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.one * 0.5f);
-        childObject.transform.localScale = new Vector3(0.1f, 0.1f, 1);
+        renderer.sprite = sprite;
     }
     private void SetMoudleOfSameColor()
     {
@@ -165,7 +130,6 @@ public class PlayerCustomisation : NetworkBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-
         adjustSize();
         
         //moduleSprit.color = getColor();
