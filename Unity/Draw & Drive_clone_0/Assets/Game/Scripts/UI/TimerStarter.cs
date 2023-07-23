@@ -9,31 +9,76 @@ using UnityEngine.EventSystems;
 
 public class TimerStarter : NetworkBehaviour
 {
-    Timer timer;
-    bool adjusted;
-    int delay = 30;
+    public static bool GameStarted = false;
+    private Timer timer;
+    //private int delay = 30;
+    [SerializeField]
+    private GameObject trafficLight;
+    private float startTime;
+    private float duration = 6f;
+    
+
     public override void OnNetworkSpawn()
     {
-        
-        timer = GetComponent<Timer>();
-        timer.StartTimer();
-        adjusted = false;
+        GameStarted = false;
+         timer = GetComponent<Timer>();
+        startTime = Time.time;
     }
     private void FixedUpdate()
     {
-
-        if (!adjusted)
+        if (!GameStarted)
         {
-            if (PlayerOptions.PositionNetworkSpawned >= NetworkManegerUI.NUMBER_OF_PLAYERS && delay <= 0)
+            float timePassed = Time.time - startTime;
+            // Check if the desired duration (3 seconds in this case) has passed
+            if (timePassed < duration || PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS)
+            {
+                if (IsServer)
+                {
+                    int index = Mathf.FloorToInt(timePassed / 2);
+                    try
+                    {
+                        Transform childTransform = trafficLight.transform.GetChild(index);
+                        childTransform.gameObject.SetActive(true);
+                        activeTraficLightsClientRpc(index);
+                    }
+                    catch (Exception) { }
+                }
+                return;
+            }
+           
+            trafficLight.SetActive(false);
+            DisableTrafficLightsClientRpc();
+            adjustTimer();
+            GameStarted = true;
+        }
+
+    }
+    [ClientRpc]
+    private void activeTraficLightsClientRpc(int index)
+    {
+
+        Transform childTransform = trafficLight.transform.GetChild(index);
+        childTransform.gameObject.SetActive(true);
+
+    }
+    [ClientRpc]
+    private void DisableTrafficLightsClientRpc()
+    {
+
+        trafficLight.SetActive(false);
+        GameStarted = true;
+
+    }
+    private void adjustTimer() { 
+    
+            if (PlayerOptions.PositionNetworkSpawned >= NetworkManegerUI.NUMBER_OF_PLAYERS) //&& delay <= 0)
             {
                 timer.StartTimer();
                 runClientsClocksClientRpc(Time.time); 
                 timer.onTimerEnd.AddListener(GameEnded);
-                 adjusted = true;
             }
-            delay--;
+            //delay--;
 
-        }
     }
     [ClientRpc]
     private void runClientsClocksClientRpc(float startTime) {

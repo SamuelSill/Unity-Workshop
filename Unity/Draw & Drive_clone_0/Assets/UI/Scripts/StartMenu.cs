@@ -30,6 +30,10 @@ public class StartMenu : MonoBehaviour
     // Start is called before the first frame update
     public void Start()
     {
+        if (ServerSession.IsInLobby())
+        {
+            LoadStartMenu();
+        }
     }
 
     // Update is called once per frame
@@ -37,9 +41,9 @@ public class StartMenu : MonoBehaviour
     {
     }
 
-    void LoadStartMenu(string gameCode, List<ServerSession.UserGameStats> players)
+    void LoadStartMenu()
     {
-        isHost = (players.Count == 0);
+        isHost = (ServerSession.LobbyPlayers.Count == 0);
 
         startButton.SetActive(isHost);
         startMenu.SetActive(true);
@@ -56,9 +60,9 @@ public class StartMenu : MonoBehaviour
         friendBox2.GetComponent<Image>().sprite = null;
         friendBox2.GetComponentInChildren<TMP_Text>().text = "";
 
-        gameCodeText.text = gameCode;
+        gameCodeText.text = ServerSession.LobbyCode;
 
-        foreach (var player in players)
+        foreach (var player in ServerSession.LobbyPlayers.Values)
         {
             ShowJoinedPlayer(player);
         }
@@ -89,7 +93,7 @@ public class StartMenu : MonoBehaviour
         if (!ServerSession.IsSocketBusy())
         {
             ServerSession.CreateGame(
-                gameCode => LoadStartMenu(gameCode, new List<ServerSession.UserGameStats>()),
+                LoadStartMenu,
                 ShowJoinedPlayer,
                 RemoveJoinedPlayer,
                 GameStarted
@@ -112,7 +116,7 @@ public class StartMenu : MonoBehaviour
         {
             ServerSession.JoinGame(
                 joinCodeInput.text,
-                (players) => LoadStartMenu(joinCodeInput.text, players),
+                LoadStartMenu,
                 ShowJoinedPlayer,
                 RemoveJoinedPlayer,
                 GameStarted,

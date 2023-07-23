@@ -58,6 +58,8 @@ public class ServerSession : MonoBehaviour
     public static string HostIp => hostIp;
     public static Texture2D CurrentGamePainting { get; private set; }
     public static string CurrentTeam => currentTeam;
+    public static Dictionary<string, UserGameStats> LobbyPlayers { get; private set; }
+    public static string LobbyCode;
 
     // Singleton
     private static ServerSession session;
@@ -775,13 +777,14 @@ public class ServerSession : MonoBehaviour
         IsHost = gameStartedMessage.is_host;
     }
 
-    public static void CreateGame(Action<string> gameCreated, 
+    public static void CreateGame(Action gameCreated, 
                                   Action<UserGameStats> userJoined,
                                   Action<string> userLeft,
                                   Action gameStarted)
     {
         Task.Run(() =>
         {
+            LobbyPlayers = new Dictionary<string, UserGameStats>();
             socket = new WebSocket($"{serverWSURL}/games/ws/{_loggedUsername}/{_loggedPassword}");
             socket.OnMessage += (sender, e) =>
             {
@@ -789,17 +792,21 @@ public class ServerSession : MonoBehaviour
                 if (message.id == "UserJoined")
                 {
                     UserJoinedMessage userJoinedMessage = JsonUtility.FromJson<UserJoinedMessage>(e.Data);
-                    PerformAction(() => userJoined.Invoke(new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car }));
+                    UserGameStats userStats = new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car };
+                    LobbyPlayers.Add(userStats.username, userStats);
+                    PerformAction(() => userJoined.Invoke(userStats));
                 }
                 else if (message.id == "UserLeft")
                 {
                     UserLeftMessage userLeftMessage = JsonUtility.FromJson<UserLeftMessage>(e.Data);
+                    LobbyPlayers.Remove(userLeftMessage.username);
                     PerformAction(() => userLeft.Invoke(userLeftMessage.username));
                 }
                 else if (message.id == "GameCreated")
                 {
                     GameCreatedMessage gameCreatedMessage = JsonUtility.FromJson<GameCreatedMessage>(e.Data);
-                    PerformAction(() => gameCreated.Invoke(gameCreatedMessage.code));
+                    LobbyCode = gameCreatedMessage.code;
+                    PerformAction(gameCreated);
                 }
                 else if (message.id == "GameStarted")
                 {
@@ -840,8 +847,8 @@ public class ServerSession : MonoBehaviour
 
     public static bool IsSocketBusy() { return socket != null && socket.IsAlive; }
 
-    public static void JoinGame(string code,
-                                Action<List<UserGameStats>> gameJoined,
+    public static void JoinGame(string gameCode,
+                                Action gameJoined,
                                 Action<UserGameStats> userJoined,
                                 Action<string> userLeft,
                                 Action gameStarted,
@@ -849,28 +856,41 @@ public class ServerSession : MonoBehaviour
     {
         Task.Run(() =>
         {
-            socket = new WebSocket($"{serverWSURL}/games/ws/{code}/{_loggedUsername}/{_loggedPassword}");
+            LobbyCode = gameCode;
+            LobbyPlayers = new Dictionary<string, UserGameStats>();
+            socket = new WebSocket($"{serverWSURL}/games/ws/{gameCode}/{_loggedUsername}/{_loggedPassword}");
             socket.OnMessage += (sender, e) =>
             {
                 WebSocketMessage message = JsonUtility.FromJson<WebSocketMessage>(e.Data);
                 if (message.id == "GameJoined")
                 {
                     JoinMessage joinMessage = JsonUtility.FromJson<JoinMessage>(e.Data);
-                    PerformAction(() => gameJoined.Invoke(joinMessage.players));
+                    foreach (var player in joinMessage.players)
+                    {
+                        LobbyPlayers.Add(player.username, new UserGameStats { username = player.username, selected_car = player.selected_car});
+                    }
+
+                    PerformAction(gameJoined);
                 }
                 else if (message.id == "UserJoined")
                 {
                     UserJoinedMessage userJoinedMessage = JsonUtility.FromJson<UserJoinedMessage>(e.Data);
+                    UserGameStats userStats = new() { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car };
+                    LobbyPlayers.Add(userStats.username, userStats);
                     PerformAction(() => userJoined.Invoke(new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car }));
                 }
                 else if (message.id == "UserLeft")
                 {
                     UserLeftMessage userLeftMessage = JsonUtility.FromJson<UserLeftMessage>(e.Data);
+                    LobbyPlayers.Remove(userLeftMessage.username);
                     PerformAction(() => userLeft.Invoke(userLeftMessage.username));
                 }
                 else if (message.id == "GameClosed")
                 {
                     PerformAction(gameClosed);
+
+                    LobbyCode = "";
+                    LobbyPlayers.Clear();
                     socket.Close();
                 }
                 else if (message.id == "GameStarted")
@@ -883,6 +903,8 @@ public class ServerSession : MonoBehaviour
                     ErrorMessage errorMessage = JsonUtility.FromJson<ErrorMessage>(e.Data);
                     PopupMessage.Display(errorMessage.message);
 
+                    LobbyCode = "";
+                    LobbyPlayers.Clear();
                     socket.Close();
                 }
             };
@@ -896,8 +918,15 @@ public class ServerSession : MonoBehaviour
         socket?.Send("{\"id\": \"StartGame\"}");
     }
 
+    public static bool IsInLobby()
+    {
+        return socket != null && socket.IsAlive;
+    }
+
     public static void CloseGameSocket()
     {
+        LobbyCode = "";
+        LobbyPlayers.Clear();
         socket.Close();
     }
 

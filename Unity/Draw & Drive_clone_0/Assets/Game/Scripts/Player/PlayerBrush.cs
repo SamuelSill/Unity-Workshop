@@ -14,6 +14,8 @@ public class PlayerBrush : NetworkBehaviour
     private PlayerCustomisation PlayerCustomisation;
     public override void OnNetworkSpawn()
     {
+        //Debug.Log("current server" + ServerSession.CurrentCar.id);
+        //Debug.Log("current team" + ServerSession.CurrentTeam);
         //palletObject[0] = GameObject.Find("Paint Canvas Variant 1");
         //palletObject[1] = GameObject.Find("Paint Canvas Variant 2");
         PlayerCustomisation = GetComponent<PlayerCustomisation>();
@@ -24,11 +26,11 @@ public class PlayerBrush : NetworkBehaviour
             changePlayerPalladServerRpc();
         }
         else {
-            if (pallet == null)
-            {
+            //if (pallet == null)
+            //{
                // Debug.Log("not right " + OwnerClientId);
                 pallet = palletObject[0].GetComponent<PaintCanvas>();
-            }
+            //}
         }
        // if (palletObject != null)
        // {
@@ -103,11 +105,11 @@ public class PlayerBrush : NetworkBehaviour
     }
     private void FixedUpdate()
     {
-        if (PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS) {
+        if (PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS || !TimerStarter.GameStarted) {
             return;
         }
         foreach(Transform objectChild in objectChildren) {
-         var playerPosition = objectChild.position;
+         Vector3 playerPosition = objectChild.position;
         
             //Debug.Log("search PaintCanvas");
             if (pallet != null)
@@ -132,6 +134,7 @@ public class PlayerBrush : NetworkBehaviour
     }
     [ServerRpc(RequireOwnership = false)]
     private void BrushAreaWithColorOnServerRpc(Vector2 pixelUV, Color color, int size) {
+
         BrushAreaWithColorOnClientRpc(pixelUV, color, size);
         BrushAreaWithColor(pixelUV, color, size);
     }

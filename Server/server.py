@@ -8,7 +8,6 @@ from pymongo.mongo_client import MongoClient
 from pymongo.collection import Collection
 from pymongo.server_api import ServerApi
 import gridfs
-
 from pydantic import BaseModel
 
 # region Resources
@@ -747,6 +746,7 @@ async def join_game(websocket: WebSocket,
         return
 
     if len(player_found["gallery"]) == 0:
+        #print("Error:    Can't Play without Paintings!")
         await websocket.send_json({
             "id": "ErrorCreating",
             "message": "Can't Play without Paintings!"

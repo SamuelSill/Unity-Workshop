@@ -12,6 +12,7 @@ public class PlayerOptions : NetworkBehaviour
     {
         if (IsServer) {
             PositionNetworkSpawned = 0;
+            
         }
         //transform.position = spawnPositionList[((int)OwnerClientId) % spawnPositionList.Count];
         if (IsOwner) {
@@ -30,12 +31,14 @@ public class PlayerOptions : NetworkBehaviour
         transform.position = spawnPositionList[index % spawnPositionList.Count];
         changePlayerPositionClientRpc(index);
         PositionNetworkSpawned++;
+        Debug.Log("Spawned " + PositionNetworkSpawned);
     }
     [ClientRpc]
     private void changePlayerPositionClientRpc(int index)
     {
         transform.position = spawnPositionList[index % spawnPositionList.Count];
         PositionNetworkSpawned++;
+        Debug.Log("Spawned " + PositionNetworkSpawned);
     }
     public NetworkObject GetNetworkObject()
     {

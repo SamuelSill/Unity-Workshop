@@ -17,7 +17,7 @@ public class CarInputHandler : NetworkBehaviour
     void Update()
     {
 
-        if (!IsOwner)
+        if (!IsOwner || !TimerStarter.GameStarted)
             return;
 
         Vector2 inputVector = Vector2.zero;
