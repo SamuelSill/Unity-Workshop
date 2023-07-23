@@ -6,12 +6,12 @@ using System;
 
 public class PlayerCustomisation : NetworkBehaviour
 {
+    Dictionary<ulong, Tuple<string, string>> clientSkins;
+
     [SerializeField]
     private int skinChoice;
 
-    public int defultBrushSize = 3;
     public int BrushSize { get; set; }
-    //private SpriteRenderer moduleSprit;
     private SpriteRenderer[] playerModules;
 
     private readonly Color blue = new Color(0.2f, 0.4f, 1);
@@ -31,44 +31,62 @@ public class PlayerCustomisation : NetworkBehaviour
         return Color.green;
     }
 
-    private void adjustSize() {
+    private void AdjustSize() {
         BrushSize = (int)(ServerSession.CurrentCarThickness * transform.localScale.x);
     }
+
     public override void OnNetworkSpawn()
     {
-        adjustSize();
-        ChangeSkin();
+        if (IsServer)
+        {
+            clientSkins = new Dictionary<ulong, Tuple<string, string>>();
+        }
+
+        Debug.Log("Network Spawn: " + IsOwner.ToString());
+        AdjustSize();
+        if (IsOwner)
+        {
+            InformServerOfCarSkinServerRpc(ServerSession.CurrentCar.id, ServerSession.CurrentSkin, OwnerClientId);
+        }
+        else
+        {
+            GetCarSkinOfObjectServerRpc(OwnerClientId);
+        }
+
         playerModules = transform.Find("PlayerModule").GetComponentsInChildren<SpriteRenderer>();
-        SetMoudleOfSameColor();
-        
-    }
-    private void ChangeSkin() {
-        addNewSkinsServerRpc(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
+        SetModuleOfSameColor();
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void addNewSkinsServerRpc(string carID, string skinID) {
+    private void InformServerOfCarSkinServerRpc(string carID, string skinID, ulong clientID)
+    {
+        clientSkins.Add(clientID, Tuple.Create(carID, skinID));
+        Debug.Log("ServerRPC: " + carID + " " + skinID);
         UpdateSkinsClientRpc(carID, skinID);
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    private void GetCarSkinOfObjectServerRpc(ulong clientID)
+    {
+        if (clientSkins.ContainsKey(clientID))
+        {
+            UpdateSkinsClientRpc(clientSkins[clientID].Item1, clientSkins[clientID].Item2);
+        }
+    }
+
     [ClientRpc]
-    private void UpdateSkinsClientRpc(string carID, string skinID)
+    private void UpdateSkinsClientRpc(string carID, string skinID, ClientRpcParams clientRpcParams = default)
     {
         Transform playerModule = transform.Find("PlayerModule");
-        deleteChildern(playerModule);
+        Debug.Log("Client RPC called for instance " + playerModule.GetInstanceID() + " with " + carID + " " + skinID);
 
-        if (playerModule.childCount > 2) {
-            return;
-        }
+        playerModule.Find("DefultView").GetComponent<SpriteRenderer>().enabled = false;
 
         CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.blue));
         CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.green));
         CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.red));        
     }
 
-    private void deleteChildern(Transform parent) {
-        parent.Find("DefultView").GetComponent<SpriteRenderer>().enabled = false;
-    }
     private void CreateChildObject(Transform parent, Sprite sprite)
     {
         // Create a child object
@@ -79,14 +97,16 @@ public class PlayerCustomisation : NetworkBehaviour
         SpriteRenderer renderer = childObject.AddComponent<SpriteRenderer>();
         renderer.sprite = sprite;
     }
-    private void SetMoudleOfSameColor()
+
+    private void SetModuleOfSameColor()
     {
-        if (IsOwner) {
+        if (IsOwner) 
+        {
             char colorLetter = currentColor.ToString()[0];
             updateSkinColorServerRpc(colorLetter);
         }
-        
     }
+
     [ServerRpc(RequireOwnership = false)]
     private void updateSkinColorServerRpc(char colorLetter)
     {
@@ -104,6 +124,7 @@ public class PlayerCustomisation : NetworkBehaviour
 
         updateSkinColorClientRpc(colorLetter);
     }
+
     [ClientRpc]
     private void updateSkinColorClientRpc(char colorLetter)
     {
@@ -114,14 +135,7 @@ public class PlayerCustomisation : NetworkBehaviour
             //Debug.Log(playerModules.Length);
             foreach (SpriteRenderer sprit in playerModules)
             {
-                if (sprit.transform.name.Contains("_" + colorLetter.ToString().ToUpper()))
-                {
-                    sprit.enabled = true;
-                }
-                else
-                {
-                    sprit.enabled = false;
-                }
+                sprit.enabled = sprit.transform.name.Contains("_" + colorLetter.ToString().ToUpper());
             }
         }
 
@@ -130,9 +144,7 @@ public class PlayerCustomisation : NetworkBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        adjustSize();
-        
-        //moduleSprit.color = getColor();
-        SetMoudleOfSameColor();
+        AdjustSize();
+        SetModuleOfSameColor();
     }
 }
