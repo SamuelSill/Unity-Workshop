@@ -23,7 +23,7 @@ public class PlayerOptions : NetworkBehaviour
             changePlayerPositionServerRpc((int)OwnerClientId % 3 + 3 * isRight);
         }
         playerCustomisation = GetComponent<PlayerCustomisation>();
-        playerCustomisation.currentColor = (PlayerCustomisation.moduleColors)(OwnerClientId % 3);
+        playerCustomisation.currentColor = (CarColor)(OwnerClientId % 3);
         
     }
     [ServerRpc(RequireOwnership = false)]

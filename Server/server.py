@@ -758,15 +758,15 @@ async def join_game(websocket: WebSocket,
         await websocket.close()
         return
 
-    if len(player_found["gallery"]) == 0:
+    #if len(player_found["gallery"]) == 0:
         #print("Error:    Can't Play without Paintings!")
-        await websocket.send_json({
-            "id": "ErrorCreating",
-            "message": "Can't Play without Paintings!"
-        })
-        await websocket.close()
+        #await websocket.send_json({
+        #    "id": "ErrorCreating",
+        #    "message": "Can't Play without Paintings!"
+        # })
+        # await websocket.close()
 
-        return
+        #return
 
     if game_code not in games:
         await websocket.send_json({

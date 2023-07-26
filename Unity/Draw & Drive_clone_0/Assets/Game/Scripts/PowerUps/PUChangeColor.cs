@@ -8,11 +8,11 @@ public class PUChangeColor : PowerUp
     [SerializeField]
     private float duration = 10f;
 
-    private PlayerCustomisation.moduleColors oldColor;
+    private CarColor oldColor;
 
     [ClientRpc]
     private void setRandonColorClientRpc(int randomNumber, NetworkObjectReference customisationReference) {
-        PlayerCustomisation.moduleColors color1, color2;
+        CarColor color1, color2;
 
         if (!customisationReference.TryGet(out NetworkObject customisationObject))
         {
@@ -20,20 +20,20 @@ public class PUChangeColor : PowerUp
         }
         PlayerCustomisation controllerSettings = customisationObject.GetComponent<PlayerCustomisation>();
         oldColor = controllerSettings.currentColor;
-        if (oldColor == PlayerCustomisation.moduleColors.blue)
+        if (oldColor == CarColor.blue)
         {
-            color1 = PlayerCustomisation.moduleColors.red;
-            color2 = PlayerCustomisation.moduleColors.green;
+            color1 = CarColor.red;
+            color2 = CarColor.green;
         }
-        else if (oldColor == PlayerCustomisation.moduleColors.red)
+        else if (oldColor == CarColor.red)
         {
-            color1 = PlayerCustomisation.moduleColors.blue;
-            color2 = PlayerCustomisation.moduleColors.green;
+            color1 = CarColor.blue;
+            color2 = CarColor.green;
         }
         else
         {
-            color1 = PlayerCustomisation.moduleColors.red;
-            color2 = PlayerCustomisation.moduleColors.blue;
+            color1 = CarColor.red;
+            color2 = CarColor.blue;
         }
         if (randomNumber == 1)
         {
@@ -54,7 +54,7 @@ public class PUChangeColor : PowerUp
         }
     }
     [ClientRpc]
-    private void ReturnToOldColorClientRpc(PlayerCustomisation.moduleColors old, NetworkObjectReference objectThatChanged) {
+    private void ReturnToOldColorClientRpc(CarColor old, NetworkObjectReference objectThatChanged) {
         objectThatChanged.TryGet(out NetworkObject newTimerNetworkObject);
         if (newTimerNetworkObject != null)
         {
