@@ -26,6 +26,17 @@ public class PanelCloser : MonoBehaviour
         }
     }
 
+    public void KeepPanelOpen()
+    {
+        PanelOpened();
+        isPanelOpen = false;
+    }
+
+    public void StopKeepingPanelOpen()
+    {
+        isPanelOpen = true;
+    }
+
     public void PanelOpened()
     {
         gameObject.SetActive(true);

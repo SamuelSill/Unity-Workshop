@@ -213,7 +213,7 @@ def post_paintings(username: str,
                 "name": new_painting.name,
                 "data": grid_fs.put(bytes(new_painting.data)),
                 "description": new_painting.description,
-                "difficulty": generated_difficulty
+                "difficulty": float(f"{generated_difficulty:.2f}")
             }
         }
     })

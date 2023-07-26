@@ -1960,7 +1960,7 @@ GameObject:
   - component: {fileID: 449477258}
   - component: {fileID: 449477257}
   - component: {fileID: 449477256}
-  - component: {fileID: 449477255}
+  - component: {fileID: 449477260}
   m_Layer: 5
   m_Name: Skins
   m_TagString: Untagged
@@ -1988,20 +1988,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 30, y: 100}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &449477255
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 449477253}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: afab7354491982042b6cd91997894b64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  skinToBuyPrefab: {fileID: 7436938051142290016, guid: bc17cd68c49ff9d4087d6b36119d12e0, type: 3}
-  carView: {fileID: 1544350236}
 --- !u!114 &449477256
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2080,6 +2066,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 449477253}
   m_CullTransparentMesh: 1
+--- !u!114 &449477260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 449477253}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afab7354491982042b6cd91997894b64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  skinToBuyPrefab: {fileID: 7436938051142290016, guid: bc17cd68c49ff9d4087d6b36119d12e0, type: 3}
+  carView: {fileID: 1544350236}
 --- !u!1001 &500185688
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9047,6 +9047,8 @@ MonoBehaviour:
   upgradeSpeedButton: {fileID: 306472385}
   upgradeSteeringButton: {fileID: 202560329}
   upgradeThicknessButton: {fileID: 1513733475}
+  skinsPanel: {fileID: 449477253}
+  carsPanel: {fileID: 1186265602}
 --- !u!114 &1544350238
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11035,6 +11037,16 @@ MonoBehaviour:
     red: {fileID: 21300000, guid: 3a610052d721f1a4ba82424fc8ebba4e, type: 3}
     green: {fileID: 21300000, guid: 4cd8c10b569899d4083179b71fda04be, type: 3}
     blue: {fileID: 21300000, guid: 318eb6c9c0b6dd64c9031e26db344bdf, type: 3}
+  - carID: formula
+    skinID: regular
+    red: {fileID: 21300000, guid: 08ec584fba2bbbe43b28aef475c589bb, type: 3}
+    green: {fileID: 21300000, guid: 869720b18e0739e48bb629083d1b3d0b, type: 3}
+    blue: {fileID: 21300000, guid: 14bcaf303043185488110794e3d7eb33, type: 3}
+  - carID: pickup
+    skinID: regular
+    red: {fileID: 21300000, guid: ddedf777fd0b2b642b13703759f3cb2c, type: 3}
+    green: {fileID: 21300000, guid: e725067fe83622a4e81af7370eb18e3f, type: 3}
+    blue: {fileID: 21300000, guid: c97de244a3a4e754fb5bc7a3e1e698ae, type: 3}
 --- !u!114 &1877472057
 MonoBehaviour:
   m_ObjectHideFlags: 0

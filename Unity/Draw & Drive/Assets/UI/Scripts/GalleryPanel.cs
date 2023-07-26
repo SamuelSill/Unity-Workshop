@@ -52,13 +52,23 @@ public class GalleryPanel : MonoBehaviour
                 AddPaintingToView
             );
         }
+        else
+        {
+            PopupMessage.Display("Please fill all fields!");
+        }
     }
 
 	public void Browse()
     {
+        addPaintingPanel.GetComponent<PanelCloser>().KeepPanelOpen();
         FileBrowser.SetFilters(true, new FileBrowser.Filter("Images", ".jpg", ".png"));
         FileBrowser.SetDefaultFilter(".png");
         FileBrowser.AddQuickLink("Users", "C:\\Users", null);
-        FileBrowser.ShowLoadDialog((path) => { fileLocation.text = path[0]; }, null, FileBrowser.PickMode.Files);
+        FileBrowser.ShowLoadDialog((path) => { 
+            fileLocation.text = path[0];
+            addPaintingPanel.GetComponent<PanelCloser>().StopKeepingPanelOpen();
+        }, () => {
+            addPaintingPanel.GetComponent<PanelCloser>().StopKeepingPanelOpen();
+        }, FileBrowser.PickMode.Files);
     }
 }

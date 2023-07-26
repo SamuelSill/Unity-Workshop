@@ -51,7 +51,7 @@ public class StartMenu : MonoBehaviour
         matchingText.SetActive(false);
 
         selectedCarObject.GetComponent<Image>().sprite =
-            CarSprites.GetCarSprite(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
+            CarSprites.GetCarSprite(ServerSession.CurrentCar.id, ServerSession.CurrentSkin, CarColor.red);
         usernameText.text = ServerSession.Username;
 
         friendBox1.GetComponent<Image>().sprite = null;
@@ -70,9 +70,10 @@ public class StartMenu : MonoBehaviour
 
     void ShowJoinedPlayer(ServerSession.UserGameStats player)
     {
-        GameObject friendBox = friendBox1.GetComponentInChildren<TMP_Text>().text == null ? friendBox1 : friendBox2;
+        GameObject friendBox = friendBox1.GetComponentInChildren<TMP_Text>().text == "" ? friendBox1 : friendBox2;
+        
         friendBox.GetComponent<Image>().sprite =
-                    CarSprites.GetCarSprite(player.selected_car.id, player.selected_car.skins[player.selected_car.selected_skin]);
+                    CarSprites.GetCarSprite(player.selected_car.id, player.selected_car.skins[player.selected_car.selected_skin], friendBox == friendBox1 ? CarColor.blue : CarColor.green);
         friendBox.GetComponentInChildren<TMP_Text>().text = player.username;
     }
 
