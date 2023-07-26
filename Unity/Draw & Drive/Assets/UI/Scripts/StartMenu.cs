@@ -9,6 +9,8 @@ using UnityEngine.UI;
 
 public class StartMenu : MonoBehaviour
 {
+    public Sprite missingCar;
+
     public string gameScene;
 
     public GameObject startMenu;
@@ -54,10 +56,10 @@ public class StartMenu : MonoBehaviour
             CarSprites.GetCarSprite(ServerSession.CurrentCar.id, ServerSession.CurrentSkin);
         usernameText.text = ServerSession.Username;
 
-        friendBox1.GetComponent<Image>().sprite = null;
+        friendBox1.GetComponent<Image>().sprite = missingCar;
         friendBox1.GetComponentInChildren<TMP_Text>().text = "";
 
-        friendBox2.GetComponent<Image>().sprite = null;
+        friendBox2.GetComponent<Image>().sprite = missingCar;
         friendBox2.GetComponentInChildren<TMP_Text>().text = "";
 
         gameCodeText.text = ServerSession.LobbyCode;
@@ -70,7 +72,7 @@ public class StartMenu : MonoBehaviour
 
     void ShowJoinedPlayer(ServerSession.UserGameStats player)
     {
-        GameObject friendBox = friendBox1.GetComponentInChildren<TMP_Text>().text == null ? friendBox1 : friendBox2;
+        GameObject friendBox = friendBox1.GetComponentInChildren<TMP_Text>().text == "" ? friendBox1 : friendBox2;
         friendBox.GetComponent<Image>().sprite =
                     CarSprites.GetCarSprite(player.selected_car.id, player.selected_car.skins[player.selected_car.selected_skin]);
         friendBox.GetComponentInChildren<TMP_Text>().text = player.username;
@@ -87,7 +89,7 @@ public class StartMenu : MonoBehaviour
     {
         SceneManager.LoadScene(gameScene);
     }
-
+        
     public void CreateButtonPressed()
     {
         if (!ServerSession.IsSocketBusy())
