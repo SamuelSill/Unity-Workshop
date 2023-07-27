@@ -589,7 +589,8 @@ class Game:
     async def join(self,
                    username: str,
                    password: str,
-                   websocket: WebSocket) -> bool:
+                   websocket: WebSocket,
+                   mobile: bool) -> bool:
         if (player_found := player(username, password)) is None:
             return False
 
@@ -600,7 +601,8 @@ class Game:
             player_socket.send_json({
                 "id": "UserJoined",
                 "username": username,
-                "selected_car": player_found["cars"][player_found["selected_car"]]
+                "selected_car": player_found["cars"][player_found["selected_car"]],
+                "mobile": mobile
             })
             for player_socket in self.__player_sockets.values()
         ])
@@ -677,6 +679,10 @@ class Game:
     def __len__(self) -> int:
         return len(self.__player_sockets)
 
+    def send_mobile_controls(self,
+                             mobile_controls: dict[str, ...]) -> None:
+        self.__host_socket.send_json(mobile_controls)
+
 
 games: dict[str, Game] = {}
 searching_game_code: str = ""
@@ -744,11 +750,12 @@ async def create_game(websocket: WebSocket,
     games.pop(game_code)
 
 
-@app.websocket("/games/ws/{game_code}/{username}/{password}")
+@app.websocket("/games/ws/{game_code}/{username}/{password}/{mobile}")
 async def join_game(websocket: WebSocket,
                     game_code: str,
                     username: str,
-                    password: str):
+                    password: str,
+                    mobile: str):
     await websocket.accept()
     if (player_found := player(username, password)) is None:
         await websocket.send_json({
@@ -784,11 +791,15 @@ async def join_game(websocket: WebSocket,
         await websocket.close()
         return
 
-    await games[game_code].join(username, password, websocket)
+    mobile = mobile.lower() == "true"
+
+    await games[game_code].join(username, password, websocket, mobile)
 
     try:
         while True:
-            await websocket.receive_text()
+            mobile_controls: dict[str, ...] = await websocket.receive_json()
+            if mobile:
+                games[game_code].send_mobile_controls(mobile_controls)
     except WebSocketDisconnect:
         pass
 

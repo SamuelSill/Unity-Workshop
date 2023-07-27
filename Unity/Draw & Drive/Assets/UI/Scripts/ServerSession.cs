@@ -59,6 +59,7 @@ public class ServerSession : MonoBehaviour
     public static Texture2D CurrentGamePainting { get; private set; }
     public static string CurrentTeam => currentTeam;
     public static Dictionary<string, UserGameStats> LobbyPlayers { get; private set; }
+    public static Dictionary<string, Queue<MobileControls>> PlayerMobileControls { get; private set; }
     public static string LobbyCode;
 
     // Singleton
@@ -753,6 +754,15 @@ public class ServerSession : MonoBehaviour
         public PlayerCar selected_car;
     }
 
+    [Serializable]
+    public class MobileControls
+    {
+        public string id;
+        public string username;
+        public float horizontal;
+        public float vertical;
+    }
+
     static void PerformAction(Action action)
     {
         lock (actions)
@@ -785,6 +795,7 @@ public class ServerSession : MonoBehaviour
         Task.Run(() =>
         {
             LobbyPlayers = new Dictionary<string, UserGameStats>();
+            PlayerMobileControls = new Dictionary<string, Queue<MobileControls>>();
             socket = new WebSocket($"{serverWSURL}/games/ws/{_loggedUsername}/{_loggedPassword}");
             socket.OnMessage += (sender, e) =>
             {
@@ -795,6 +806,11 @@ public class ServerSession : MonoBehaviour
                     UserGameStats userStats = new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car };
                     LobbyPlayers.Add(userStats.username, userStats);
                     PerformAction(() => userJoined.Invoke(userStats));
+
+                    if (userJoinedMessage.mobile)
+                    {
+                        PlayerMobileControls.Add(userJoinedMessage.username, new Queue<MobileControls>());
+                    }
                 }
                 else if (message.id == "UserLeft")
                 {
@@ -824,6 +840,11 @@ public class ServerSession : MonoBehaviour
                 {
                     ErrorMessage errorMessage = JsonUtility.FromJson<ErrorMessage>(e.Data);
                     PopupMessage.Display(errorMessage.message);
+                }
+                else if (message.id == "MobileControls")
+                {
+                    MobileControls mobileControls = JsonUtility.FromJson<MobileControls>(e.Data);
+                    PlayerMobileControls[mobileControls.username].Enqueue(mobileControls);
                 }
             };
 
@@ -858,7 +879,7 @@ public class ServerSession : MonoBehaviour
         {
             LobbyCode = gameCode;
             LobbyPlayers = new Dictionary<string, UserGameStats>();
-            socket = new WebSocket($"{serverWSURL}/games/ws/{gameCode}/{_loggedUsername}/{_loggedPassword}");
+            socket = new WebSocket($"{serverWSURL}/games/ws/{gameCode}/{_loggedUsername}/{_loggedPassword}/false");
             socket.OnMessage += (sender, e) =>
             {
                 WebSocketMessage message = JsonUtility.FromJson<WebSocketMessage>(e.Data);
@@ -942,6 +963,7 @@ public class ServerSession : MonoBehaviour
         public string id;
         public string username;
         public PlayerCar selected_car;
+        public bool mobile;
     }
 
     [Serializable]
