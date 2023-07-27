@@ -31,8 +31,8 @@ public class ServerSession : MonoBehaviour
     private static List<Car> _cars = new();
 
     //  Consts
-    private const string serverIP = "127.0.0.1:80";
-    private const string serverHTTPURL = "http://" + serverIP;
+    private const string serverIP = "unity-https-drawndrive.com";
+    private const string serverHTTPURL = "https://" + serverIP;
     private const string serverWSURL = "ws://" + serverIP;
     private static string credentialsFile = "";
 
@@ -279,9 +279,9 @@ public class ServerSession : MonoBehaviour
         }
     }
 
-    public static void UploadPainting(string name, string description, string pngFilePath, Action<Painting> paintingAdded)
+    public static void UploadPainting(string name, string description, string picFilePath, Action<Painting> paintingAdded)
     {
-        session.StartCoroutine(session.AddPainting(name, description, pngFilePath, paintingAdded));
+        session.StartCoroutine(session.AddPainting(name, description, picFilePath, paintingAdded));
     }
 
     [System.Serializable]
@@ -290,19 +290,21 @@ public class ServerSession : MonoBehaviour
         public string name;
         public List<int> data;
         public string description;
+        public string fileType;
     }
 
-    IEnumerator AddPainting(string paintingName, string description, string fileLocation, Action<Painting> paintingAdded)
+    IEnumerator AddPainting(string paintingName, string description, string picFilePath, Action<Painting> paintingAdded)
     {
-        if (File.Exists(fileLocation))
+        if (File.Exists(picFilePath))
         {
-            byte[] data = File.ReadAllBytes(fileLocation);
+            byte[] data = File.ReadAllBytes(picFilePath);
             Texture2D texture = new Texture2D(2, 2);
             texture.LoadImage(data);
 
             AddNewPainting painting = new AddNewPainting();
             painting.name = paintingName;
             painting.description = description;
+            painting.fileType = picFilePath.Substring(picFilePath.LastIndexOf('.') + 1);
             painting.data = new List<int>();
             foreach (byte b in data)
             {

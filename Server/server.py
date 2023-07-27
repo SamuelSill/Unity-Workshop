@@ -113,6 +113,11 @@ def post_register(registration_form: RegistrationForm,
     return "Success"
 
 
+@app.get("/")
+def health_check():
+    return "Success"
+
+
 @app.get("/players/login",
          status_code=status.HTTP_404_NOT_FOUND)
 def get_login(username: str,
@@ -195,6 +200,7 @@ class NewPainting(BaseModel):
     name: str
     data: list[int]
     description: str
+    fileType: str
 
 
 @app.post("/players/paintings",
