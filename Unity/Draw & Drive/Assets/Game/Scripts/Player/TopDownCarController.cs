@@ -23,6 +23,10 @@ public class TopDownCarController : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        maxSpeed = ServerSession.CurrentCarSpeed;
+        accelerationFactor = ServerSession.CurrentCarSpeed / 2f;
+        turnFactor = ServerSession.CurrentCarSteering;
+        driftFactor = ServerSession.CurrentCarSteering / 3f;
         carRigidbody2D = GetComponent<Rigidbody2D>();
     }
     void FixedUpdate()
