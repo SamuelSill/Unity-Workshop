@@ -585,8 +585,11 @@ class Game:
     def __init__(self,
                  username: str,
                  game_host: WebSocket):
+        from typing import Optional
+
         self.__host: str = username
         self.__player_sockets: dict[str, WebSocket] = {username: game_host}
+        self.__other_game: Optional[Game] = None
 
     @property
     def __host_socket(self) -> WebSocket:
@@ -675,6 +678,14 @@ class Game:
             for username, player_socket in players.items()
         ])
 
+        self.__other_game = other_game
+        other_game.__other_game = self
+
+    def stop(self) -> None:
+        if self.is_running:
+            self.__other_game.__other_game = None
+            self.__other_game = None
+
     async def close(self) -> None:
         await asyncio.gather(*[
             player_socket.send_json({"id": "GameClosed"})
@@ -688,6 +699,10 @@ class Game:
     def send_mobile_controls(self,
                              mobile_controls: dict[str, ...]) -> None:
         self.__host_socket.send_json(mobile_controls)
+
+    @property
+    def is_running(self) -> bool:
+        return self.__other_game is not None
 
 
 games: dict[str, Game] = {}
@@ -745,6 +760,8 @@ async def create_game(websocket: WebSocket,
                 else:
                     await games[searching_game_code].start(games[game_code])
                     searching_game_code = ""
+            if data["id"] == "FinishGame":
+                games[game_code].stop()
     except WebSocketDisconnect:
         pass
 
@@ -804,7 +821,7 @@ async def join_game(websocket: WebSocket,
     try:
         while True:
             mobile_controls: dict[str, ...] = await websocket.receive_json()
-            if mobile:
+            if mobile and games[game_code].is_running:
                 games[game_code].send_mobile_controls(mobile_controls)
     except WebSocketDisconnect:
         pass

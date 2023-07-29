@@ -33,7 +33,7 @@ public class ServerSession : MonoBehaviour
     //  Consts
     private const string serverIP = "unity-https-drawndrive.com";
     private const string serverHTTPURL = "https://" + serverIP;
-    private const string serverWSURL = "ws://" + serverIP;
+    private const string serverWSURL = "wss://" + serverIP;
     private static string credentialsFile = "";
 
     // Properties
@@ -939,6 +939,11 @@ public class ServerSession : MonoBehaviour
     public static void StartGame()
     {
         socket?.Send("{\"id\": \"StartGame\"}");
+    }
+
+    public static void FinishGame()
+    {
+        socket?.Send("{\"id\": \"FinishGame\"}");
     }
 
     public static bool IsInLobby()
