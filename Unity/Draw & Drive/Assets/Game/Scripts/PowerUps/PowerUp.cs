@@ -18,7 +18,7 @@ public abstract class PowerUp : NetworkBehaviour
     {
         if (collision.CompareTag("Player"))
         {
-            StartCoroutine(speedEffect(collision));
+            StartCoroutine(PowerUpEffect(collision));
         }
     }
     
@@ -38,7 +38,7 @@ public abstract class PowerUp : NetworkBehaviour
     {
         NotificationMessage.Remove(message);
     }
-    private IEnumerator speedEffect(Collider2D player)
+    private IEnumerator PowerUpEffect(Collider2D player)
     {
         baseDuration = GetDuration();
         message = GetMessage();
@@ -53,6 +53,7 @@ public abstract class PowerUp : NetworkBehaviour
         // Hide this object
         GetComponent<SpriteRenderer>().enabled = false;
         GetComponent<Collider2D>().enabled = false;
+
         // Hide all his childern
         Transform[] objectChildren = gameObject.GetComponentsInChildren<Transform>();
         for (int i = 0; i < objectChildren.Length; i++)

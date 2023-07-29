@@ -25,22 +25,13 @@ public class PlayerBrush : NetworkBehaviour
             //Debug.Log("owner right " + OwnerClientId);
             changePlayerPalladServerRpc();
         }
-        else {
-            //if (pallet == null)
-            //{
-               // Debug.Log("not right " + OwnerClientId);
-                pallet = palletObject[0].GetComponent<PaintCanvas>();
-            //}
+        else
+        {
+
+            pallet = palletObject[0].GetComponent<PaintCanvas>();
+
         }
-       // if (palletObject != null)
-       // {
-       //     pallet = palletObject[0].GetComponent<PaintCanvas>();
-        //    
-       // }
-       // else {
-        //    Debug.Log("No pallet");
-        //    pallet = FindObjectOfType<PaintCanvas>();
-        //}
+
         objectChildren = new List<Transform>();
         foreach (string name in ChildrenObjectNames) 
         {
@@ -91,58 +82,53 @@ public class PlayerBrush : NetworkBehaviour
     {
         palletObject[1].GetComponent<PaintCanvas>().SetAllTextureData(textureData.Decompress());
     }
+
     private Vector2 WorldToPixelUV(Vector3 worldPosition, int textureWidth, int textureHeight)
     {
-        //Debug.Log("player position: " + worldPosition);
         Vector3 localPosition = pallet.transform.InverseTransformPoint(worldPosition);
-        //Debug.Log("local player position: " + localPosition +" width: "+ textureWidth+" hieght: "+ textureHeight);
         Vector2 pixelUV = new Vector2(localPosition.x + 0.5f, localPosition.y + 0.5f);
-        //pixelUV = new Vector2( 0.5f, 0.5f);
-        //Debug.Log("pixelUV position: " + pixelUV);
         pixelUV.x *= textureWidth; 
         pixelUV.y *= textureHeight;
         return pixelUV;
     }
+
     private void FixedUpdate()
     {
-        if (PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS || !TimerStarter.GameStarted) {
+        if (PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS || !TimerStarter.GameStarted)
+        {
             return;
         }
-        foreach(Transform objectChild in objectChildren) {
-         Vector3 playerPosition = objectChild.position;
-        
-            //Debug.Log("search PaintCanvas");
+        foreach (Transform objectChild in objectChildren)
+        {
+            Vector3 playerPosition = objectChild.position;
+
             if (pallet != null)
             {
-            //Debug.Log("pallet possition" + pallet.transform.position);
-            //Debug.Log("PaintCanvas Found");
-            Renderer rend = pallet.GetComponent<Renderer>();
+                Renderer rend = pallet.GetComponent<Renderer>();
                 MeshCollider meshCollider = pallet.GetComponent<MeshCollider>();
 
                 if (rend == null || rend.sharedMaterial == null || rend.sharedMaterial.mainTexture == null || meshCollider == null)
                     return;
-            //Debug.Log("rend Found, meshCollider Found");
-            Texture2D tex = rend.sharedMaterial.mainTexture as Texture2D;
-                //Debug.Log("rend.material.mainTexture Found width= "+ tex.width+ " height="+ tex.height);
+
+                Texture2D tex = rend.sharedMaterial.mainTexture as Texture2D;
                 Vector2 pixelUV = WorldToPixelUV(playerPosition, tex.width, tex.height);
 
-                //Debug.Log("pixelUV position:" + pixelUV);
                 CmdBrushAreaWithColorOnServer(pixelUV, PlayerCustomisation.getColor(), PlayerCustomisation.BrushSize);
                 BrushAreaWithColor(pixelUV, PlayerCustomisation.getColor(), PlayerCustomisation.BrushSize);
             }
         }
     }
-    [ServerRpc(RequireOwnership = false)]
-    private void BrushAreaWithColorOnServerRpc(Vector2 pixelUV, Color color, int size) {
-
-        BrushAreaWithColorOnClientRpc(pixelUV, color, size);
-        BrushAreaWithColor(pixelUV, color, size);
-    }
 
     private void CmdBrushAreaWithColorOnServer(Vector2 pixelUV, Color color, int size)
     {
         BrushAreaWithColorOnServerRpc(pixelUV, color, size);
+    }
 
+    [ServerRpc(RequireOwnership = false)]
+    private void BrushAreaWithColorOnServerRpc(Vector2 pixelUV, Color color, int size) 
+    {
+        BrushAreaWithColorOnClientRpc(pixelUV, color, size);
+        BrushAreaWithColor(pixelUV, color, size);
     }
 
     [ClientRpc]

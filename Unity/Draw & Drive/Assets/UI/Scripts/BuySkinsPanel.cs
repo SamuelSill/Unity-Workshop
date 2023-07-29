@@ -10,26 +10,17 @@ public class BuySkinsPanel : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    public void ShowSkinsToBuy()
-    {
-        foreach (Transform child in transform)
-        {
-            Destroy(child.gameObject);
-        }
-
         var carViewComponent = carView.GetComponent<CarView>();
         foreach (var skin in ServerSession.CurrentGameCar.skins)
         {
             var newObject = Instantiate(skinToBuyPrefab, transform);
             newObject.GetComponent<SkinToBuy>().SetSkinToBuy(skin, carViewComponent);
         }
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        
     }
 }
