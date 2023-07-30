@@ -2,8 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Networking;
 using WebSocketSharp;
@@ -938,7 +941,15 @@ public class ServerSession : MonoBehaviour
 
     public static void StartGame()
     {
-        socket?.Send("{\"id\": \"StartGame\"}");
+        var host = Dns.GetHostEntry(Dns.GetHostName());
+        foreach (var ip in host.AddressList)
+        {
+            if (ip.AddressFamily == AddressFamily.InterNetwork)
+            {
+                socket?.Send($"{{\"id\": \"StartGame\", \"ip\": \"{ip}\"}}");
+                return;
+            }
+        }
     }
 
     public static void FinishGame()

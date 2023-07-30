@@ -654,7 +654,8 @@ class Game:
         return True
 
     async def start(self,
-                    other_game: "Game") -> None:
+                    other_game: "Game",
+                    host_ip: str) -> None:
         from random import choice
 
         players: dict[str, WebSocket] = {**self.__player_sockets, **other_game.__player_sockets}
@@ -670,7 +671,7 @@ class Game:
         await asyncio.gather(*[
             player_socket.send_json({
                 "id": "GameStarted",
-                "host_ip": self.__host_socket.client.host,
+                "host_ip": host_ip,
                 "is_host": username == self.__host,
                 "painting": random_player_painting,
                 "team": "left" if username in self.__player_sockets else "right"
@@ -707,6 +708,7 @@ class Game:
 
 games: dict[str, Game] = {}
 searching_game_code: str = ""
+searching_game_host: str = ""
 
 
 @app.websocket("/games/ws/{username}/{password}")
@@ -717,6 +719,7 @@ async def create_game(websocket: WebSocket,
     from random import choice
 
     global searching_game_code
+    global searching_game_host
 
     await websocket.accept()
     if (player_found := player(username, password)) is None:
@@ -757,9 +760,11 @@ async def create_game(websocket: WebSocket,
                 #      })
                 if searching_game_code == "":
                     searching_game_code = game_code
+                    searching_game_host = data["ip"]
                 else:
-                    await games[searching_game_code].start(games[game_code])
+                    await games[searching_game_code].start(games[game_code], searching_game_host)
                     searching_game_code = ""
+                    searching_game_host = ""
             if data["id"] == "FinishGame":
                 games[game_code].stop()
     except WebSocketDisconnect:
@@ -767,6 +772,7 @@ async def create_game(websocket: WebSocket,
 
     if searching_game_code == game_code:
         searching_game_code = ""
+        searching_game_host = ""
 
     await games[game_code].leave(username, password)
     await games[game_code].close()
