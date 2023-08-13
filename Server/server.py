@@ -1,7 +1,7 @@
 import asyncio
 from typing import Optional
 from fastapi import FastAPI, Response, status, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from pymongo.database import Database
 from pymongo.mongo_client import MongoClient
@@ -11,6 +11,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import gridfs
 from pydantic import BaseModel
+
+import math
+import numpy as np
+from skimage.segmentation import slic
+from skimage.color import label2rgb
+import matplotlib.image as mpimg
+from PIL import Image
 
 # region Resources
 
@@ -56,7 +63,7 @@ def car(car_id: str) -> Optional[dict[str, ...]]:
     })
 
 
-def generate_difficulty(_: list[int]) -> float:
+def generate_difficulty(_: bytes) -> float:
     from random import random
     # TODO: Difficulty Algorithm and Machine Learning
 
@@ -114,8 +121,16 @@ def post_register(registration_form: RegistrationForm,
 
 
 @app.get("/")
-def health_check():
-    return "Success"
+async def health_check():
+    return PlainTextResponse(
+        "No games"
+        if len(games) == 0
+        else
+        "\n\n".join((f"{game_code}\n"
+                     f"Game Running: {game.is_running}\n" +
+                     "\n".join(game))
+                    for game_code, game in games.items())
+    )
 
 
 @app.get("/players/login",
@@ -196,11 +211,86 @@ def get_paintings(username: str,
     ]
 
 
+def process_image(painting_data: bytes, shape: list[int], file_type: str) -> bytes:
+    from random import choice
+    from string import ascii_lowercase
+    from os import remove
+    image_filename: str = "".join(choice(ascii_lowercase) for _ in range(10)) + "." + file_type
+
+    with open(image_filename, "wb") as f:
+        f.write(painting_data)
+
+    image_decoded_array = np.frombuffer(mpimg.imread(image_filename).tobytes(), dtype=np.uint8)
+    image_reshaped = image_decoded_array.reshape((*shape, 3))
+
+    # Applying Simple Linear Iterative
+    # Clustering on the image
+    # - 50 segments & compactness = 10
+    length: int = shape[0] + shape[1]
+    segments = slic(image_reshaped, n_segments=20 * 4048 / length, compactness=2 * 4048 / length)
+
+    # Converts a label image into
+    # an RGB color image for visualizing
+    # the labeled regions.
+    divided_img = label2rgb(segments, image_reshaped, kind='avg')
+
+    # Convert all to simple colors
+    for image_row in range(divided_img.shape[0]):
+        for image_column in range(divided_img.shape[1]):
+            pixel_rgb = divided_img[image_row][image_column]
+
+            for m in range(3):
+                divided_img[image_row][image_column][m] = math.floor(pixel_rgb[m] / 128) * 255
+
+            r, g, b = pixel_rgb
+
+            # Convert black to blue and white to yellow
+            if r == 0 and g == 0 and b == 0:
+                divided_img[image_row][image_column][2] = 255
+            if r == 255 and g == 255 and b == 255:
+                divided_img[image_row][image_column][2] = 0
+
+    Image.fromarray(divided_img, "RGB").save(image_filename)
+    with open(image_filename, "rb") as f:
+        data: bytes = f.read()
+    remove(image_filename)
+    return data
+
+
 class NewPainting(BaseModel):
     name: str
     data: list[int]
+    shape: list[int]
     description: str
     fileType: str
+
+
+@app.delete("/players/paintings",
+            status_code=status.HTTP_404_NOT_FOUND)
+def delete_paintings(username: str,
+                     password: str,
+                     painting: str,
+                     response: Response):
+    if (player_found := player(username, password)) is None:
+        return "Player Not Found!"
+
+    if (painting_found := next((user_painting
+                                for user_painting in player_found["gallery"]
+                                if user_painting["name"] == painting),
+                               None)) is None:
+        return "Painting Not Found!"
+
+    grid_fs.delete(painting_found["data"])
+
+    players_collection.update_one({"username": username}, {
+        "$pull": {
+            "gallery": {"name": painting}
+        }
+    })
+
+    response.status_code = status.HTTP_200_OK
+
+    return "Painting Deleted Successfully"
 
 
 @app.post("/players/paintings",
@@ -209,24 +299,33 @@ def post_paintings(username: str,
                    password: str,
                    new_painting: NewPainting,
                    response: Response):
-    if player(username, password) is None:
+    if (player_found := player(username, password)) is None:
         return "Player Not Found!"
 
-    generated_difficulty: float = generate_difficulty(new_painting.data)
+    if any(painting["name"] == new_painting.name for painting in player_found["gallery"]):
+        return "Painting Already Exists!"
+
+    processed_image: bytes = process_image(bytes(new_painting.data), new_painting.shape, new_painting.fileType)
+    generated_difficulty: float = generate_difficulty(processed_image)
+    painting: dict = {
+        "name": new_painting.name,
+        "data": grid_fs.put(processed_image),
+        "description": new_painting.description,
+        "difficulty": float(f"{generated_difficulty:.2f}")
+    }
+
     players_collection.update_one({"username": username}, {
         "$push": {
-            "gallery": {
-                "name": new_painting.name,
-                "data": grid_fs.put(bytes(new_painting.data)),
-                "description": new_painting.description,
-                "difficulty": float(f"{generated_difficulty:.2f}")
-            }
+            "gallery": painting
         }
     })
 
     response.status_code = status.HTTP_200_OK
 
-    return generated_difficulty
+    return {
+        **painting,
+        "data": list(processed_image)
+    }
 
 # endregion
 
@@ -586,70 +685,85 @@ class Game:
                  username: str,
                  game_host: WebSocket):
         from typing import Optional
+        from asyncio import Lock
 
         self.__host: str = username
+        self.__game_lock: Lock = Lock()
+        self.__unity_host: Optional[WebSocket] = None
         self.__player_sockets: dict[str, WebSocket] = {username: game_host}
         self.__other_game: Optional[Game] = None
 
-    @property
-    def __host_socket(self) -> WebSocket:
-        return self.__player_sockets[self.__host]
+    def __contains__(self,
+                     username: str) -> bool:
+        return username in self.__player_sockets
+
+    def __iter__(self):
+        for username in self.__player_sockets.keys():
+            yield username
 
     async def join(self,
                    username: str,
                    password: str,
                    websocket: WebSocket,
                    mobile: bool) -> bool:
-        if (player_found := player(username, password)) is None:
-            return False
+        await self.__game_lock.acquire()
+        try:
+            if (player_found := player(username, password)) is None:
+                return False
 
-        if username in self.__player_sockets:
-            return False
+            if username in self.__player_sockets:
+                return False
 
-        await asyncio.gather(*[
-            player_socket.send_json({
-                "id": "UserJoined",
-                "username": username,
-                "selected_car": player_found["cars"][player_found["selected_car"]],
-                "mobile": mobile
+            await asyncio.gather(*[
+                player_socket.send_json({
+                    "id": "UserJoined",
+                    "username": username,
+                    "selected_car": player_found["cars"][player_found["selected_car"]],
+                    "mobile": mobile
+                })
+                for player_socket in self.__player_sockets.values()
+            ])
+
+            self.__player_sockets[username] = websocket
+            await websocket.send_json({
+                "id": "GameJoined",
+                "players": [
+                    {
+                        "username": player_username,
+                        "selected_car": players_collection.find_one({
+                            "username": player_username
+                        })["cars"][player_found["selected_car"]]
+                    }
+                    for player_username in self.__player_sockets
+                    if player_username != username
+                ]
             })
-            for player_socket in self.__player_sockets.values()
-        ])
-
-        self.__player_sockets[username] = websocket
-        await websocket.send_json({
-            "id": "GameJoined",
-            "players": [
-                {
-                    "username": player_username,
-                    "selected_car": players_collection.find_one({
-                        "username": player_username
-                    })["cars"][player_found["selected_car"]]
-                }
-                for player_username in self.__player_sockets
-                if player_username != username
-            ]
-        })
+        finally:
+            self.__game_lock.release()
 
         return True
 
     async def leave(self,
                     username: str,
                     password: str) -> bool:
-        if player(username, password) is None:
-            return False
+        await self.__game_lock.acquire()
+        try:
+            if player(username, password) is None:
+                return False
 
-        if username not in self.__player_sockets:
-            return False
+            if username not in self.__player_sockets:
+                return False
 
-        self.__player_sockets.pop(username)
-        await asyncio.gather(*[
-            player_socket.send_json({
-                "id": "UserLeft",
-                "username": username,
-            })
-            for player_socket in self.__player_sockets.values()
-        ])
+            self.__player_sockets.pop(username)
+            await asyncio.gather(*[
+                player_socket.send_json({
+                    "id": "UserLeft",
+                    "username": username,
+                })
+                for player_socket in self.__player_sockets.values()
+            ])
+        finally:
+            self.__game_lock.release()
 
         return True
 
@@ -657,49 +771,69 @@ class Game:
                     other_game: "Game",
                     host_ip: str) -> None:
         from random import choice
+        await self.__game_lock.acquire()
 
-        players: dict[str, WebSocket] = {**self.__player_sockets, **other_game.__player_sockets}
+        try:
+            players: dict[str, WebSocket] = {**self.__player_sockets, **other_game.__player_sockets}
 
-        random_player_painting: list[int] = list(grid_fs.get(choice([
-            painting["data"]
-            for player_object in players_collection.find({
-                "username": {"$in": list(players.keys())}
-            })
-            for painting in player_object["gallery"]
-        ])).read())
+            random_player_painting: list[int] = list(grid_fs.get(choice([
+                painting["data"]
+                for player_object in players_collection.find({
+                    "username": {"$in": list(players.keys())}
+                })
+                for painting in player_object["gallery"]
+            ])).read())
 
-        await asyncio.gather(*[
-            player_socket.send_json({
-                "id": "GameStarted",
-                "host_ip": host_ip,
-                "is_host": username == self.__host,
-                "painting": random_player_painting,
-                "team": "left" if username in self.__player_sockets else "right"
-            })
-            for username, player_socket in players.items()
-        ])
+            await asyncio.gather(*[
+                player_socket.send_json({
+                    "id": "GameStarted",
+                    "host_ip": host_ip,
+                    "is_host": username == self.__host,
+                    "painting": random_player_painting,
+                    "team": "left" if username in self.__player_sockets else "right"
+                })
+                for username, player_socket in players.items()
+            ])
 
-        self.__other_game = other_game
-        other_game.__other_game = self
+            self.__other_game = other_game
+            other_game.__other_game = self
 
-    def stop(self) -> None:
-        if self.is_running:
-            self.__other_game.__other_game = None
-            self.__other_game = None
+            self.__other_game.__unity_host = self.__unity_host = self.__player_sockets[self.__host]
+        finally:
+            self.__game_lock.release()
+
+    async def stop(self) -> None:
+        await self.__game_lock.acquire()
+        try:
+            if self.is_running:
+                self.__other_game.__other_game = None
+                self.__other_game.__unity_host = None
+                self.__other_game = None
+                self.__unity_host = None
+        finally:
+            self.__game_lock.release()
 
     async def close(self) -> None:
-        await asyncio.gather(*[
-            player_socket.send_json({"id": "GameClosed"})
-            for player_socket in self.__player_sockets.values()
-        ])
-        self.__player_sockets = {}
+        await self.__game_lock.acquire()
+        try:
+            await asyncio.gather(*[
+                player_socket.send_json({"id": "GameClosed"})
+                for player_socket in self.__player_sockets.values()
+            ])
+            self.__player_sockets = {}
+        finally:
+            self.__game_lock.release()
 
     def __len__(self) -> int:
         return len(self.__player_sockets)
 
-    def send_mobile_controls(self,
-                             mobile_controls: dict[str, ...]) -> None:
-        self.__host_socket.send_json(mobile_controls)
+    async def send_mobile_controls(self,
+                                   mobile_controls: dict[str, ...]) -> None:
+        await self.__game_lock.acquire()
+        try:
+            await self.__unity_host.send_json(mobile_controls)
+        finally:
+            self.__game_lock.release()
 
     @property
     def is_running(self) -> bool:
@@ -726,6 +860,15 @@ async def create_game(websocket: WebSocket,
         await websocket.send_json({
             "id": "ErrorCreating",
             "message": "Player Not Found!"
+        })
+        await websocket.close()
+
+        return
+
+    if any(username in game for game in games.values()):
+        await websocket.send_json({
+            "id": "ErrorCreating",
+            "message": "Player Already in a Game!"
         })
         await websocket.close()
 
@@ -766,7 +909,7 @@ async def create_game(websocket: WebSocket,
                     searching_game_code = ""
                     searching_game_host = ""
             if data["id"] == "FinishGame":
-                games[game_code].stop()
+                await games[game_code].stop()
     except WebSocketDisconnect:
         pass
 
@@ -794,10 +937,18 @@ async def join_game(websocket: WebSocket,
         await websocket.close()
         return
 
+    if any(username in game for game in games.values()):
+        await websocket.send_json({
+            "id": "ErrorJoining",
+            "message": "Player Already in a Game!"
+        })
+        await websocket.close()
+
+        return
+
     #if len(player_found["gallery"]) == 0:
-        #print("Error:    Can't Play without Paintings!")
         #await websocket.send_json({
-        #    "id": "ErrorCreating",
+        #    "id": "ErrorJoining",
         #    "message": "Can't Play without Paintings!"
         # })
         # await websocket.close()
@@ -827,8 +978,9 @@ async def join_game(websocket: WebSocket,
     try:
         while True:
             mobile_controls: dict[str, ...] = await websocket.receive_json()
-            if mobile and games[game_code].is_running:
-                games[game_code].send_mobile_controls(mobile_controls)
+            mobile_controls["username"] = username
+            if mobile and game_code in games and games[game_code].is_running:
+                await games[game_code].send_mobile_controls(mobile_controls)
     except WebSocketDisconnect:
         pass
 

@@ -61,8 +61,8 @@ public class GalleryPanel : MonoBehaviour
 	public void Browse()
     {
         addPaintingPanel.GetComponent<PanelCloser>().KeepPanelOpen();
-        FileBrowser.SetFilters(true, new FileBrowser.Filter("Images", ".jpg", ".png"));
-        FileBrowser.SetDefaultFilter(".png");
+        FileBrowser.SetFilters(true, new FileBrowser.Filter("Images", ".jpg"));
+        FileBrowser.SetDefaultFilter(".jpg");
         FileBrowser.AddQuickLink("Users", "C:\\Users", null);
         FileBrowser.ShowLoadDialog((path) => { 
             fileLocation.text = path[0];

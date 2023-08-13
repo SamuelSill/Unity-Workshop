@@ -282,6 +282,23 @@ public class ServerSession : MonoBehaviour
         }
     }
 
+    public static void DeletePainting(string name, Action paintingDeleted)
+    {
+        session.StartCoroutine(session.RemovePainting(name, paintingDeleted));
+    }
+
+    IEnumerator RemovePainting(string name, Action paintingDeleted)
+    {
+        var uwr = UnityWebRequest.Delete($"{serverHTTPURL}/players/paintings?username={_loggedUsername}&password={_loggedPassword}&painting={name}");
+
+        yield return uwr.SendWebRequest();
+
+        if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
+        {
+            PerformAction(paintingDeleted);
+        }
+    }
+
     public static void UploadPainting(string name, string description, string picFilePath, Action<Painting> paintingAdded)
     {
         session.StartCoroutine(session.AddPainting(name, description, picFilePath, paintingAdded));
@@ -292,6 +309,7 @@ public class ServerSession : MonoBehaviour
     {
         public string name;
         public List<int> data;
+        public List<int> shape;
         public string description;
         public string fileType;
     }
@@ -301,13 +319,15 @@ public class ServerSession : MonoBehaviour
         if (File.Exists(picFilePath))
         {
             byte[] data = File.ReadAllBytes(picFilePath);
-            Texture2D texture = new Texture2D(2, 2);
+
+            Texture2D texture = new(2, 2);
             texture.LoadImage(data);
 
-            AddNewPainting painting = new AddNewPainting();
+            AddNewPainting painting = new();
             painting.name = paintingName;
             painting.description = description;
             painting.fileType = picFilePath.Substring(picFilePath.LastIndexOf('.') + 1);
+            painting.shape = new List<int>() { texture.height, texture.width };
             painting.data = new List<int>();
             foreach (byte b in data)
             {
@@ -326,11 +346,22 @@ public class ServerSession : MonoBehaviour
 
             if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
             {
+                var jsonPainting = JsonUtility.FromJson<JsonPainting>(uwr.downloadHandler.text);
+
+                texture = new(2, 2);
+                data = new byte[jsonPainting.data.Count];
+                for (int index = 0; index < data.Length; index++)
+                {
+                    data[index] = (byte)jsonPainting.data[index];
+                }
+
+                texture.LoadImage(data);
+
                 Painting newPainting = new()
                 {
-                    description = description,
-                    name = paintingName,
-                    difficulty = float.Parse(System.Text.Encoding.UTF8.GetString(uwr.downloadHandler.data)),
+                    description = jsonPainting.description,
+                    name = jsonPainting.name,
+                    difficulty = jsonPainting.difficulty,
                     pngData = texture
                 };
 
