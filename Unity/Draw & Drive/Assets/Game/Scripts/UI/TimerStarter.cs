@@ -96,8 +96,8 @@ public class TimerStarter : NetworkBehaviour
         //ChangeSceneServerRpc();
         if (IsServer)
         {
-            ServerSession.FinishGame();
             NetworkManager.SceneManager.LoadScene("PostGame", LoadSceneMode.Single);
+              
         }
     }
 

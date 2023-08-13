@@ -82,7 +82,7 @@ public class StartMenu : MonoBehaviour
     void RemoveJoinedPlayer(string username)
     {
         GameObject friendBox = friendBox1.GetComponentInChildren<TMP_Text>().text == username ? friendBox1 : friendBox2;
-        friendBox.GetComponent<Image>().sprite = null;
+        friendBox.GetComponent<Image>().sprite = missingCar;
         friendBox.GetComponentInChildren<TMP_Text>().text = "";
     }
 

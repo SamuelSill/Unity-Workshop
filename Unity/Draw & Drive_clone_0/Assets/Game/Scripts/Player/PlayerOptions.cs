@@ -26,6 +26,27 @@ public class PlayerOptions : NetworkBehaviour
         playerCustomisation.currentColor = (CarColor)(OwnerClientId % 3);
         
     }
+    private void Start()
+    {
+        Debug.Log("PlayerOptions start");
+        if (gameObject.name.Contains("Mobile"))
+        {
+            Debug.Log("Mobile user in PlayerOptions");
+            int ownerID = 1;
+            int isRight = 0;
+            if (ServerSession.CurrentTeam.Equals("right"))
+            {
+                isRight = 1;
+            }
+            int index = ownerID + (3 * isRight);
+            changePlayerPositionClientRpc(index);
+            transform.position = spawnPositionList[index % spawnPositionList.Count];
+            PositionNetworkSpawned++;
+            playerCustomisation = GetComponent<PlayerCustomisation>();
+            playerCustomisation.currentColor = (CarColor)(ownerID % 3);
+        }
+        
+    }
     [ServerRpc(RequireOwnership = false)]
     private void changePlayerPositionServerRpc(int index) {
         transform.position = spawnPositionList[index % spawnPositionList.Count];

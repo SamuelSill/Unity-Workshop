@@ -2,8 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Networking;
 using WebSocketSharp;
@@ -31,9 +34,9 @@ public class ServerSession : MonoBehaviour
     private static List<Car> _cars = new();
 
     //  Consts
-    private const string serverIP = "127.0.0.1:80";
-    private const string serverHTTPURL = "http://" + serverIP;
-    private const string serverWSURL = "ws://" + serverIP;
+    private const string serverIP = "unity-https-drawndrive.com";
+    private const string serverHTTPURL = "https://" + serverIP;
+    private const string serverWSURL = "wss://" + serverIP;
     private static string credentialsFile = "";
 
     // Properties
@@ -59,6 +62,7 @@ public class ServerSession : MonoBehaviour
     public static Texture2D CurrentGamePainting { get; private set; }
     public static string CurrentTeam => currentTeam;
     public static Dictionary<string, UserGameStats> LobbyPlayers { get; private set; }
+    public static Dictionary<string, Queue<MobileControls>> PlayerMobileControls { get; private set; }
     public static string LobbyCode;
 
     // Singleton
@@ -278,9 +282,26 @@ public class ServerSession : MonoBehaviour
         }
     }
 
-    public static void UploadPainting(string name, string description, string pngFilePath, Action<Painting> paintingAdded)
+    public static void DeletePainting(string name, Action paintingDeleted)
     {
-        session.StartCoroutine(session.AddPainting(name, description, pngFilePath, paintingAdded));
+        session.StartCoroutine(session.RemovePainting(name, paintingDeleted));
+    }
+
+    IEnumerator RemovePainting(string name, Action paintingDeleted)
+    {
+        var uwr = UnityWebRequest.Delete($"{serverHTTPURL}/players/paintings?username={_loggedUsername}&password={_loggedPassword}&painting={name}");
+
+        yield return uwr.SendWebRequest();
+
+        if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
+        {
+            PerformAction(paintingDeleted);
+        }
+    }
+
+    public static void UploadPainting(string name, string description, string picFilePath, Action<Painting> paintingAdded)
+    {
+        session.StartCoroutine(session.AddPainting(name, description, picFilePath, paintingAdded));
     }
 
     [System.Serializable]
@@ -288,20 +309,25 @@ public class ServerSession : MonoBehaviour
     {
         public string name;
         public List<int> data;
+        public List<int> shape;
         public string description;
+        public string fileType;
     }
 
-    IEnumerator AddPainting(string paintingName, string description, string fileLocation, Action<Painting> paintingAdded)
+    IEnumerator AddPainting(string paintingName, string description, string picFilePath, Action<Painting> paintingAdded)
     {
-        if (File.Exists(fileLocation))
+        if (File.Exists(picFilePath))
         {
-            byte[] data = File.ReadAllBytes(fileLocation);
-            Texture2D texture = new Texture2D(2, 2);
+            byte[] data = File.ReadAllBytes(picFilePath);
+
+            Texture2D texture = new(2, 2);
             texture.LoadImage(data);
 
-            AddNewPainting painting = new AddNewPainting();
+            AddNewPainting painting = new();
             painting.name = paintingName;
             painting.description = description;
+            painting.fileType = picFilePath.Substring(picFilePath.LastIndexOf('.') + 1);
+            painting.shape = new List<int>() { texture.height, texture.width };
             painting.data = new List<int>();
             foreach (byte b in data)
             {
@@ -320,16 +346,31 @@ public class ServerSession : MonoBehaviour
 
             if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
             {
+                var jsonPainting = JsonUtility.FromJson<JsonPainting>(uwr.downloadHandler.text);
+
+                texture = new(2, 2);
+                data = new byte[jsonPainting.data.Count];
+                for (int index = 0; index < data.Length; index++)
+                {
+                    data[index] = (byte)jsonPainting.data[index];
+                }
+
+                texture.LoadImage(data);
+
                 Painting newPainting = new()
                 {
-                    description = description,
-                    name = paintingName,
-                    difficulty = float.Parse(System.Text.Encoding.UTF8.GetString(uwr.downloadHandler.data)),
+                    description = jsonPainting.description,
+                    name = jsonPainting.name,
+                    difficulty = jsonPainting.difficulty,
                     pngData = texture
                 };
 
                 _userPaintings.Add(newPainting);
                 PerformAction(() => paintingAdded.Invoke(newPainting));
+            }
+            else
+            {
+                PopupMessage.Display("Failed to Upload Painting!");
             }
         }
     }
@@ -753,6 +794,23 @@ public class ServerSession : MonoBehaviour
         public PlayerCar selected_car;
     }
 
+    [Serializable]
+    public class GyroData
+    {
+        public float x;
+        public float y;
+        public float z;
+    }
+    [Serializable]
+    public class MobileControls
+    {
+        //mobile data: {"id":"MobileControls","gyro":{"x":"0.00","y":"0.00","z":"0.00"},"drive":"stop","username":"maayan"}
+        public string id;
+        public GyroData gyro;
+        public string drive;
+        public string username;
+    }
+
     static void PerformAction(Action action)
     {
         lock (actions)
@@ -785,6 +843,7 @@ public class ServerSession : MonoBehaviour
         Task.Run(() =>
         {
             LobbyPlayers = new Dictionary<string, UserGameStats>();
+            PlayerMobileControls = new Dictionary<string, Queue<MobileControls>>();
             socket = new WebSocket($"{serverWSURL}/games/ws/{_loggedUsername}/{_loggedPassword}");
             socket.OnMessage += (sender, e) =>
             {
@@ -795,6 +854,11 @@ public class ServerSession : MonoBehaviour
                     UserGameStats userStats = new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car };
                     LobbyPlayers.Add(userStats.username, userStats);
                     PerformAction(() => userJoined.Invoke(userStats));
+
+                    if (userJoinedMessage.mobile)
+                    {
+                        PlayerMobileControls.Add(userJoinedMessage.username, new Queue<MobileControls>());
+                    }
                 }
                 else if (message.id == "UserLeft")
                 {
@@ -824,6 +888,13 @@ public class ServerSession : MonoBehaviour
                 {
                     ErrorMessage errorMessage = JsonUtility.FromJson<ErrorMessage>(e.Data);
                     PopupMessage.Display(errorMessage.message);
+                }
+                else if (message.id == "MobileControls")
+                {
+                    MobileControls mobileControls = JsonUtility.FromJson<MobileControls>(e.Data);
+                    //Debug.Log("mobile data: " + e.Data);
+                    //Debug.Log("mobile controls: [" + mobileControls.gyro.x + ", " + mobileControls.gyro.y + ", " + mobileControls.gyro.z + "], " + mobileControls.drive + ", " + mobileControls.username);
+                    PlayerMobileControls[mobileControls.username].Enqueue(mobileControls);
                 }
             };
 
@@ -858,7 +929,7 @@ public class ServerSession : MonoBehaviour
         {
             LobbyCode = gameCode;
             LobbyPlayers = new Dictionary<string, UserGameStats>();
-            socket = new WebSocket($"{serverWSURL}/games/ws/{gameCode}/{_loggedUsername}/{_loggedPassword}");
+            socket = new WebSocket($"{serverWSURL}/games/ws/{gameCode}/{_loggedUsername}/{_loggedPassword}/false");
             socket.OnMessage += (sender, e) =>
             {
                 WebSocketMessage message = JsonUtility.FromJson<WebSocketMessage>(e.Data);
@@ -915,7 +986,20 @@ public class ServerSession : MonoBehaviour
 
     public static void StartGame()
     {
-        socket?.Send("{\"id\": \"StartGame\"}");
+        var host = Dns.GetHostEntry(Dns.GetHostName());
+        foreach (var ip in host.AddressList)
+        {
+            if (ip.AddressFamily == AddressFamily.InterNetwork)
+            {
+                socket?.Send($"{{\"id\": \"StartGame\", \"ip\": \"{ip}\"}}");
+                return;
+            }
+        }
+    }
+
+    public static void FinishGame()
+    {
+        socket?.Send("{\"id\": \"FinishGame\"}");
     }
 
     public static bool IsInLobby()
@@ -942,6 +1026,7 @@ public class ServerSession : MonoBehaviour
         public string id;
         public string username;
         public PlayerCar selected_car;
+        public bool mobile;
     }
 
     [Serializable]

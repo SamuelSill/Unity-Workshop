@@ -14,14 +14,13 @@ public class PlayerCustomisation : NetworkBehaviour
     public int BrushSize { get; set; }
     private SpriteRenderer[] playerModules;
 
-    private readonly Color blue = new Color(0.2f, 0.4f, 1);
     public CarColor currentColor = CarColor.blue;
 
     public Color getColor() 
     {
         if(currentColor.Equals(CarColor.blue))
         {
-            return blue;
+            return Color.blue;
         }
         if (currentColor.Equals(CarColor.red))
         {
@@ -42,7 +41,7 @@ public class PlayerCustomisation : NetworkBehaviour
             clientSkins = new Dictionary<ulong, Tuple<string, string>>();
         }
 
-        Debug.Log("Network Spawn: " + IsOwner.ToString());
+        //Debug.Log("Network Spawn: " + IsOwner.ToString());
         AdjustSize();
         if (IsOwner)
         {
@@ -61,7 +60,7 @@ public class PlayerCustomisation : NetworkBehaviour
     private void InformServerOfCarSkinServerRpc(string carID, string skinID, ulong clientID)
     {
         clientSkins.Add(clientID, Tuple.Create(carID, skinID));
-        Debug.Log("ServerRPC: " + carID + " " + skinID);
+        //Debug.Log("ServerRPC: " + carID + " " + skinID);
         UpdateSkinsClientRpc(carID, skinID);
     }
 
@@ -78,7 +77,7 @@ public class PlayerCustomisation : NetworkBehaviour
     private void UpdateSkinsClientRpc(string carID, string skinID, ClientRpcParams clientRpcParams = default)
     {
         Transform playerModule = transform.Find("PlayerModule");
-        Debug.Log("Client RPC called for instance " + playerModule.GetInstanceID() + " with " + carID + " " + skinID);
+        //Debug.Log("Client RPC called for instance " + playerModule.GetInstanceID() + " with " + carID + " " + skinID);
 
         playerModule.Find("DefultView").GetComponent<SpriteRenderer>().enabled = false;
 

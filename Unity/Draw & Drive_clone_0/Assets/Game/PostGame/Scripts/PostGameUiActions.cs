@@ -42,7 +42,7 @@ public class PostGameUiActions : NetworkBehaviour
             if (IsHost)
             {   
                 //NetworkManager.Singleton.DisconnectClient(NetworkManager.Singleton.LocalClientId);
-                SceneManager.LoadScene("Game Menu", LoadSceneMode.Single);
+                SceneManager.LoadScene("Game Menu");
                 NetworkManager.Singleton.Shutdown();
             }
             

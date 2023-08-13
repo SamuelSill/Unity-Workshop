@@ -543,7 +543,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4157553244610140141, guid: 593f041170ffc364a81fee01ce1c6458, type: 3}
       propertyPath: m_text
-      value: EXIT
+      value: back
       objectReference: {fileID: 0}
     - target: {fileID: 4157553244610140143, guid: 593f041170ffc364a81fee01ce1c6458, type: 3}
       propertyPath: m_Name

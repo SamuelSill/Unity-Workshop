@@ -795,12 +795,20 @@ public class ServerSession : MonoBehaviour
     }
 
     [Serializable]
+    public class GyroData
+    {
+        public float x;
+        public float y;
+        public float z;
+    }
+    [Serializable]
     public class MobileControls
     {
+        //mobile data: {"id":"MobileControls","gyro":{"x":"0.00","y":"0.00","z":"0.00"},"drive":"stop","username":"maayan"}
         public string id;
+        public GyroData gyro;
+        public string drive;
         public string username;
-        public float horizontal;
-        public float vertical;
     }
 
     static void PerformAction(Action action)
@@ -884,6 +892,8 @@ public class ServerSession : MonoBehaviour
                 else if (message.id == "MobileControls")
                 {
                     MobileControls mobileControls = JsonUtility.FromJson<MobileControls>(e.Data);
+                    //Debug.Log("mobile data: " + e.Data);
+                    //Debug.Log("mobile controls: [" + mobileControls.gyro.x + ", " + mobileControls.gyro.y + ", " + mobileControls.gyro.z + "], " + mobileControls.drive + ", " + mobileControls.username);
                     PlayerMobileControls[mobileControls.username].Enqueue(mobileControls);
                 }
             };

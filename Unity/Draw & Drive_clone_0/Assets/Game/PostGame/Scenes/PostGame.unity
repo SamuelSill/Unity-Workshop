@@ -223,8 +223,8 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2119626081}
-  - {fileID: 281716058}
   - {fileID: 511550632}
+  - {fileID: 281716058}
   - {fileID: 2041853105}
   - {fileID: 1374819490}
   - {fileID: 958745488}
@@ -298,7 +298,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 373478227}
-  m_RootOrder: 2
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -463,7 +463,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4157553243863613898, guid: 593f041170ffc364a81fee01ce1c6458, type: 3}
       propertyPath: m_RootOrder
-      value: 6
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 4157553243863613898, guid: 593f041170ffc364a81fee01ce1c6458, type: 3}
       propertyPath: m_AnchorMax.x
@@ -540,6 +540,10 @@ PrefabInstance:
     - target: {fileID: 4157553243863613899, guid: 593f041170ffc364a81fee01ce1c6458, type: 3}
       propertyPath: m_Name
       value: Button
+      objectReference: {fileID: 0}
+    - target: {fileID: 4157553244610140141, guid: 593f041170ffc364a81fee01ce1c6458, type: 3}
+      propertyPath: m_text
+      value: back
       objectReference: {fileID: 0}
     - target: {fileID: 4157553244610140143, guid: 593f041170ffc364a81fee01ce1c6458, type: 3}
       propertyPath: m_Name

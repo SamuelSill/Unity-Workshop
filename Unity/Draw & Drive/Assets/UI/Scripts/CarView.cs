@@ -14,8 +14,6 @@ public class CarView : MonoBehaviour
     public GameObject upgradeSpeedButton;
     public GameObject upgradeSteeringButton;
     public GameObject upgradeThicknessButton;
-    public GameObject skinsPanel;
-    public GameObject carsPanel;
 
     // Start is called before the first frame update
     public void Start()
@@ -72,9 +70,6 @@ public class CarView : MonoBehaviour
         DisplayUpgradeCost(upgradeSpeedButton, ServerSession.SpeedUpgradeCost);
         DisplayUpgradeCost(upgradeSteeringButton, ServerSession.SteeringUpgradeCost);
         DisplayUpgradeCost(upgradeThicknessButton, ServerSession.ThicknessUpgradeCost);
-
-        skinsPanel.GetComponent<BuySkinsPanel>().ShowSkinsToBuy();
-        carsPanel.GetComponent<BuyCarsPanel>().ShowCarsToBuy();
     }
 
     void DisplayUpgradeCost(GameObject button, int currentUpgradeCost)
