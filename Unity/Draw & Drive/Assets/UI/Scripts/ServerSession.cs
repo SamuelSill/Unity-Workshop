@@ -368,6 +368,10 @@ public class ServerSession : MonoBehaviour
                 _userPaintings.Add(newPainting);
                 PerformAction(() => paintingAdded.Invoke(newPainting));
             }
+            else
+            {
+                PopupMessage.Display("Failed to Upload Painting!");
+            }
         }
     }
 

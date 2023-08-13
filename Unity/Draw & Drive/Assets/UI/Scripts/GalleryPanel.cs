@@ -49,7 +49,10 @@ public class GalleryPanel : MonoBehaviour
                 paintingName.text, 
                 description.text, 
                 fileLocation.text,
-                AddPaintingToView
+                (painting) => {
+                    AddPaintingToView(painting);
+                    PopupMessage.Display("Painting Added!");
+                }
             );
         }
         else

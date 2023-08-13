@@ -234,20 +234,25 @@ def process_image(painting_data: bytes, shape: list[int], file_type: str) -> byt
     # the labeled regions.
     divided_img = label2rgb(segments, image_reshaped, kind='avg')
 
+    spectrum_size: int = 3
+
     # Convert all to simple colors
     for image_row in range(divided_img.shape[0]):
         for image_column in range(divided_img.shape[1]):
             pixel_rgb = divided_img[image_row][image_column]
 
             for m in range(3):
-                divided_img[image_row][image_column][m] = math.floor(pixel_rgb[m] / 128) * 255
+                divided_img[image_row][image_column][m] = (
+                    math.floor(pixel_rgb[m] / (255 / spectrum_size)) *
+                    (255 / (spectrum_size - 1))
+                )
 
             r, g, b = pixel_rgb
 
             # Convert black to blue and white to yellow
-            if r == 0 and g == 0 and b == 0:
+            if r == g == b == 0:
                 divided_img[image_row][image_column][2] = 255
-            if r == 255 and g == 255 and b == 255:
+            if r == g == b == 255:
                 divided_img[image_row][image_column][2] = 0
 
     Image.fromarray(divided_img, "RGB").save(image_filename)
