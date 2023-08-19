@@ -211,14 +211,13 @@ const api_gamecode_request = (gamePin,username,password) =>{
       var gyro_x = document.getElementById("alpha-value").textContent;
       var gyro_y = document.getElementById("beta-value").textContent;
       var gyro_z = document.getElementById("gamma-value").textContent;
-      var drive = "stop";
-      if (pedal_pressed){
-        if (reverse_pressed){
-          drive = "reverse";
-        }
-        else{
-          drive = "forward";
-        }
+      let drive;
+      if (reverse_pressed === pedal_pressed) {
+          drive = 'stop';
+      } else if (pedal_pressed) {
+          drive = 'forward';
+      } else {
+          drive = 'reverse';
       }
       ws.send(JSON.stringify({id:"MobileControls",gyro:{x:gyro_x,y:gyro_y,z:gyro_z},drive:drive}));
     }

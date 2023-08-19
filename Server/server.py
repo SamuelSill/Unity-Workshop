@@ -1,6 +1,7 @@
 import asyncio
 from typing import Optional
 from fastapi import FastAPI, Response, status, WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
 from fastapi.responses import RedirectResponse, PlainTextResponse, FileResponse
 
 from pymongo.database import Database
@@ -864,7 +865,11 @@ class Game:
                                    mobile_controls: dict[str, ...]) -> None:
         await self.__game_lock.acquire()
         try:
-            await self.__unity_host.send_json(mobile_controls)
+            if (
+                self.__unity_host.application_state == WebSocketState.CONNECTED and
+                self.__unity_host.client_state == WebSocketState.CONNECTED
+            ):
+                await self.__unity_host.send_json(mobile_controls)
         finally:
             self.__game_lock.release()
 
@@ -937,7 +942,7 @@ async def create_game(websocket: WebSocket,
                 if searching_game_code == "":
                     searching_game_code = game_code
                     searching_game_host = data["ip"]
-                else:
+                elif searching_game_code != game_code:
                     await games[searching_game_code].start(games[game_code], searching_game_host)
                     searching_game_code = ""
                     searching_game_host = ""
