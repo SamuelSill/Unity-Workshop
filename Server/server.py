@@ -795,7 +795,17 @@ class Game:
                     "host_ip": host_ip,
                     "is_host": username == self.__host,
                     "painting": random_player_painting,
-                    "team": "left" if username in self.__player_sockets else "right"
+                    "team": "left" if username in self.__player_sockets else "right",
+                    "enemy_lobby": [
+                        {
+                            "username": enemy_username,
+                            "selected_car":
+                                (enemy_player := players_collection.find_one({
+                                    "username": enemy_username
+                                }))["cars"][enemy_player["selected_car"]]
+                        }
+                        for enemy_username in other_game
+                    ]
                 })
                 for username, player_socket in players.items()
             ])

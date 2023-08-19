@@ -62,6 +62,7 @@ public class ServerSession : MonoBehaviour
     public static Texture2D CurrentGamePainting { get; private set; }
     public static string CurrentTeam => currentTeam;
     public static Dictionary<string, UserGameStats> LobbyPlayers { get; private set; }
+    public static Dictionary<string, UserGameStats> EnemyLobbyPlayers { get; private set; }
     public static Dictionary<string, Queue<MobileControls>> PlayerMobileControls { get; private set; }
     public static string LobbyCode;
 
@@ -833,6 +834,11 @@ public class ServerSession : MonoBehaviour
         currentTeam = gameStartedMessage.team;
         hostIp = gameStartedMessage.host_ip;
         IsHost = gameStartedMessage.is_host;
+        EnemyLobbyPlayers = new Dictionary<string, UserGameStats>();
+        foreach (var enemyPlayer in gameStartedMessage.enemy_lobby)
+        {
+            EnemyLobbyPlayers.Add(enemyPlayer.username, enemyPlayer);
+        }
     }
 
     public static void CreateGame(Action gameCreated, 
@@ -1051,5 +1057,6 @@ public class ServerSession : MonoBehaviour
         public bool is_host;
         public List<int> painting;
         public string team;
+        public List<UserGameStats> enemy_lobby;
     }
 }
