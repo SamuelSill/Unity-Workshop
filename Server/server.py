@@ -43,13 +43,22 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# endregion
+
+# region Google Cloud Healthcheck
+
+
+@app.get("/health_check")
+def health_check():
+    return
+
 
 # endregion
 
 
 # region Frontend
 
-@app.get("/frontend/{frontend_page:path}", name="path-convertor")
+@app.get("/app/{frontend_page:path}", name="path-convertor")
 def mobile_app_page(frontend_page: str):
     return FileResponse(frontend_page)
 
@@ -132,7 +141,7 @@ def post_register(registration_form: RegistrationForm,
 
 @app.get("/")
 async def home_page():
-    return RedirectResponse("/frontend/index.html")
+    return RedirectResponse("/app/mobile/index.html")
 
 
 @app.get("/games")

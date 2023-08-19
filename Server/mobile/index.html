@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style1.css">
+    <title>Draw&Drive-Login</title>
+</head>
+<body>
+   <div class="con">
+    <!-- form with 2 inputs, username,password  and a submit button -->
+        <h1 class="menuHeader"></h1>
+    <div class="formCon" >
+        <input class="FormInput"  type="text" id="username" name="username" placeholder="username" required>
+        <input class="FormInput" type="password" id="password" name="password" placeholder="password" required>
+        <button class="FormBtn" >
+            Log in
+            </button>
+    </div>
+   </div> 
+   <script>
+    const username = document.getElementById('username');
+    const password = document.getElementById('password');
+    const api_url = "https://unity-https-drawndrive.com";
+    const btn = document.querySelector('.FormBtn');
+
+
+    const api_login_request = () =>{
+        console.log(username.value); 
+        console.log(password.value);
+        const name = username.value ;
+        const pass = password.value;
+        fetch(`${api_url}/players/login?username=${name}&password=${pass}`, {
+            method: 'GET',
+       
+        })
+        .then(res => {
+            if(res.status !== 200){
+                alert("The username or password is incorrect");
+                throw new Error('Login failed');
+            }
+            else{
+            console.log('Success:', res);
+			localStorage.setItem('username', username.value)
+			localStorage.setItem("password", password.value)
+            // Redirect to lobby.html after successful login
+            window.location.href = 'lobby.html';
+        }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+
+    }
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if(username.value === '' && password.value === ''){
+            return;
+        }else{
+            api_login_request();
+        }
+    })
+
+   </script>
+</body>
+</html>
