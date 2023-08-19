@@ -1,7 +1,7 @@
 import asyncio
 from typing import Optional
 from fastapi import FastAPI, Response, status, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import RedirectResponse, PlainTextResponse, FileResponse
 
 from pymongo.database import Database
 from pymongo.mongo_client import MongoClient
@@ -42,6 +42,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+
+# endregion
+
+
+# region Frontend
+
+@app.get("/frontend/{frontend_page:path}", name="path-convertor")
+def mobile_app_page(frontend_page: str):
+    return FileResponse(frontend_page)
 
 
 # endregion
@@ -121,7 +131,12 @@ def post_register(registration_form: RegistrationForm,
 
 
 @app.get("/")
-async def health_check():
+async def home_page():
+    return RedirectResponse("/frontend/index.html")
+
+
+@app.get("/games")
+async def get_running_games():
     return PlainTextResponse(
         "No games"
         if len(games) == 0
@@ -143,12 +158,6 @@ def get_login(username: str,
 
     response.status_code = status.HTTP_200_OK
     return "Success"
-
-
-@app.get("/games/gyro_page")
-def get_gyro_page():
-    with open("gyro_html.html", "r") as gyro_html_file:
-        return HTMLResponse(gyro_html_file.read())
 
 
 # endregion
