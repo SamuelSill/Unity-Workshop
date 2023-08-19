@@ -652,10 +652,9 @@ class NewGame(BaseModel):
 @app.post("/players/games",
           status_code=status.HTTP_404_NOT_FOUND)
 def add_new_game(username: str,
-                 password: str,
                  new_game: NewGame,
                  response: Response):
-    if player(username, password) is None:
+    if players_collection.find_one({"username": username}) is None:
         return "Player Not Found!"
 
     response.status_code = status.HTTP_200_OK
@@ -854,6 +853,12 @@ class Game:
                 player_socket.send_json({"id": "GameClosed"})
                 for player_socket in self.__player_sockets.values()
             ])
+
+            await asyncio.gather(*[
+                player_socket.close()
+                for player_socket in self.__player_sockets.values()
+            ])
+
             self.__player_sockets = {}
         finally:
             self.__game_lock.release()
@@ -1014,7 +1019,8 @@ async def join_game(websocket: WebSocket,
     await games[game_code].join(username, password, websocket, mobile)
 
     try:
-        while True:
+        while (websocket.application_state == WebSocketState.CONNECTED and
+               websocket.client_state == WebSocketState.CONNECTED):
             mobile_controls: dict[str, ...] = await websocket.receive_json()
             mobile_controls["username"] = username
             if mobile and game_code in games and games[game_code].is_running:

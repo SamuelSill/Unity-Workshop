@@ -242,8 +242,6 @@ const api_gamecode_request = (gamePin,username,password) =>{
       if(received_msg.JSON["id"] == "ErrorJoining"){
         var message = received_msg.JSON["message"];
         alert(message);
-        //window.location.href = 'lobby.html'; //check if this goes to onclose
-
       }
     };
           

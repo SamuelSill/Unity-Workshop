@@ -25,8 +25,8 @@ public class PostGameUiActions : NetworkBehaviour
     void Start()
     {
         WinnerText.text = winner.ToString() + " Team";
-        LeftPresantageText.text = rightTeamPresentage.ToString("F2") + "%";
-        RightPresantageText.text = leftTeamPresentage.ToString("F2") + "%";
+        LeftPresantageText.text = leftTeamPresentage.ToString("F2") + "%";
+        RightPresantageText.text = rightTeamPresentage.ToString("F2") + "%";
 
         NetworkManager.Singleton.OnClientDisconnectCallback += OnPlayerDisconnect;
 

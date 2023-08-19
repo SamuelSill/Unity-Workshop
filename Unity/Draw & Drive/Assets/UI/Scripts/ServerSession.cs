@@ -723,9 +723,14 @@ public class ServerSession : MonoBehaviour
         }
     }
 
-    public static void AddNewGame(bool hasWon, float accuracy, Action gameSaved, Action gameFailedSaving)
+    public static void AddNewGame(bool hasWon, float accuracy, string username = null)
     {
-        session.StartCoroutine(session.AddFinishedGame(hasWon, accuracy, gameSaved, gameFailedSaving));
+        if (username == null)
+        {
+            username = ServerSession.Username;
+        }
+
+        session.StartCoroutine(session.AddFinishedGame(hasWon, accuracy, username));
     }
 
     [Serializable]
@@ -735,13 +740,13 @@ public class ServerSession : MonoBehaviour
         public float accuracy;
     }
 
-    IEnumerator AddFinishedGame(bool hasWon, float accuracy, Action gameSaved, Action gameFailedSaving)
+    IEnumerator AddFinishedGame(bool hasWon, float accuracy, string username)
     {
         NewGame painting = new NewGame();
         painting.win = hasWon;
         painting.accuracy = accuracy;
 
-        var uwr = new UnityWebRequest($"{serverHTTPURL}/players/games?username={_loggedUsername}&password={_loggedPassword}", "POST");
+        var uwr = new UnityWebRequest($"{serverHTTPURL}/players/games?username={username}", "POST");
         byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(JsonUtility.ToJson(painting));
 
         uwr.uploadHandler = new UploadHandlerRaw(jsonToSend);
@@ -752,11 +757,7 @@ public class ServerSession : MonoBehaviour
 
         if (uwr.result == UnityWebRequest.Result.ConnectionError || uwr.responseCode != 200)
         {
-            PerformAction(gameFailedSaving);
-        }
-        else
-        {
-            PerformAction(gameSaved);
+            PopupMessage.Display("Failed to save game results!");
         }
     }
 
@@ -905,6 +906,11 @@ public class ServerSession : MonoBehaviour
             };
 
             socket.Connect();
+
+            if (!socket.IsAlive)
+            {
+                PopupMessage.Display("Failed creating lobby!");
+            }
         });
     }
 
@@ -987,6 +993,11 @@ public class ServerSession : MonoBehaviour
             };
 
             socket.Connect();
+
+            if (!socket.IsAlive)
+            {
+                PopupMessage.Display("Failed joining lobby!");
+            }
         });
     }
 
