@@ -15,7 +15,7 @@ public class NetworkManegerUI : NetworkBehaviour
 
     private static int currentMobileUser = 0;
     private static int totalMobileUsers = 0;
-    private static Dictionary<int, string> mobileUserUsername;
+    private static Dictionary<int, string> mobileUserUsername = new Dictionary<int, string>();
     public static void AddUserToMobileUsers(string userName) 
     {
         Debug.Log("adding mobile user " + userName);
@@ -27,7 +27,14 @@ public class NetworkManegerUI : NetworkBehaviour
     }
     public static string GetCurrentMobileUser()  // property
     {
-        Debug.Log("GetCurrentMobileUser: number of users: " + mobileUserUsername.Count);
+        if (mobileUserUsername.Count == 0) {
+            totalMobileUsers = 0;
+            foreach (string  mobileUserName in ServerSession.PlayerMobileControls.Keys)
+            {
+                NetworkManegerUI.AddUserToMobileUsers(mobileUserName);
+            }
+        }
+        //Debug.Log("GetCurrentMobileUser: number of users: " + mobileUserUsername.Count);
         string userName = "";
         try{
             userName = mobileUserUsername[currentMobileUser];

@@ -11,12 +11,12 @@ GameObject:
   - component: {fileID: 478146888217866068}
   - component: {fileID: 5228847495406825063}
   m_Layer: 7
-  m_Name: Capsule
+  m_Name: Shadow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &478146888217866068
 Transform:
   m_ObjectHideFlags: 0
@@ -29,8 +29,8 @@ Transform:
   m_LocalScale: {x: 0.49999988, y: 0.49999988, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2488249065163097433}
-  m_RootOrder: 0
+  m_Father: {fileID: 2412852867146190769}
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &5228847495406825063
 SpriteRenderer:
@@ -112,10 +112,9 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 478146888217866068}
   - {fileID: 8014163918103222070}
   m_Father: {fileID: 2412852867146190769}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5151452688943115516
 GameObject:
@@ -5013,6 +5012,7 @@ Transform:
   - {fileID: 4912573600231893290}
   - {fileID: 8467950669537547251}
   - {fileID: 360809698600329050}
+  - {fileID: 478146888217866068}
   - {fileID: 2488249065163097433}
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -5178,8 +5178,9 @@ MonoBehaviour:
   ChildrenObjectNames:
   - TopPosition
   - BottomPosition
-  mixingStrengthUp: 0.05
-  mixingStrengthDown: 0.05
+  min: 0.01
+  max: 0.04
+  threshhold: 0.5
 --- !u!114 &2240081826565819907
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5229,7 +5230,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2488249065163097433}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &5126311763761892355
 SpriteRenderer:

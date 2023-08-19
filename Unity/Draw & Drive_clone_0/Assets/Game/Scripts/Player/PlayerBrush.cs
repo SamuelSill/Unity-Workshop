@@ -30,6 +30,11 @@ public class PlayerBrush : NetworkBehaviour
             {
                 teamID = 1;
             }
+            if (IsHost && gameObject.name.Contains("Mobile") && ServerSession.EnemyLobbyPlayers.ContainsKey(NetworkManegerUI.GetCurrentMobileUser()))
+            {
+                // On enemy canvas (not the host canvas)
+                teamID = (teamID + 1) % 2;
+            }
             //if(gameObject.name.Contains("Mobile")) {}
             InformServerOfCarSkinServerRpc(OwnerClientId, teamID);
         }
@@ -117,22 +122,30 @@ public class PlayerBrush : NetworkBehaviour
     }
     private void FixedUpdate()
     {
-        if (PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS || !TimerStarter.GameStarted || gameObject.name.Contains("Mobile")) {
+        if (PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS || !TimerStarter.GameStarted) {
             return;
         }
+        //if (gameObject.name.Contains("Mobile"))
+        //{
+
+        //}
         foreach (Transform objectChild in objectChildren) {
-         Vector3 playerPosition = objectChild.position;
-        
+            Vector3 playerPosition = objectChild.position;
+
             //Debug.Log("search PaintCanvas");
             if (pallet != null)
             {
-            //Debug.Log("pallet possition" + pallet.transform.position);
-            //Debug.Log("PaintCanvas Found");
-            Renderer rend = pallet.GetComponent<Renderer>();
+                //Debug.Log("pallet possition" + pallet.transform.position);
+                
+                //Debug.Log("PaintCanvas Found");
+                Renderer rend = pallet.GetComponent<Renderer>();
                 MeshCollider meshCollider = pallet.GetComponent<MeshCollider>();
 
                 if (rend == null || rend.sharedMaterial == null || rend.sharedMaterial.mainTexture == null || meshCollider == null)
+                {
                     return;
+                }
+                    
             //Debug.Log("rend Found, meshCollider Found");
             Texture2D tex = rend.sharedMaterial.mainTexture as Texture2D;
                 //Debug.Log("rend.material.mainTexture Found width= "+ tex.width+ " height="+ tex.height);
@@ -162,11 +175,22 @@ public class PlayerBrush : NetworkBehaviour
     {
         BrushAreaWithColor(pixelUV, color, size);
     }
-    public float mixingStrengthUp = 0.05f;
-    public float mixingStrengthDown = 0.05f;
+    public float min = 0.01f;
+    public float max = 0.04f;
+    public float threshhold = 0.5f;
+    private float mixingStrengthUp;
+    private float mixingStrengthDown;
     public Color mixColors(Color ground_color, Color car_color)
     {
-        
+        if (ground_color.r > threshhold && ground_color.g > threshhold && ground_color.b > threshhold)
+        {
+            mixingStrengthUp = max;
+            mixingStrengthDown = max;
+        }
+        else {
+            mixingStrengthUp = min;
+            mixingStrengthDown = min;
+        }
         if (car_color == Color.blue) 
         {
             return new Color(Mathf.Max(ground_color.r - mixingStrengthDown * ground_color.r, 0), Mathf.Max(ground_color.g - mixingStrengthDown * ground_color.g, 0), Mathf.Min(ground_color.b + mixingStrengthUp * (1/(ground_color.b+0.01f)), 1));
@@ -176,10 +200,11 @@ public class PlayerBrush : NetworkBehaviour
             return new Color(Mathf.Max(ground_color.r - mixingStrengthDown * ground_color.r, 0), Mathf.Min(ground_color.g + mixingStrengthUp * (1 / (ground_color.g + 0.01f)), 1), Mathf.Max(ground_color.b - mixingStrengthDown * ground_color.b, 0));
         }
         return new Color(Mathf.Min(ground_color.r + mixingStrengthUp * (1 / (ground_color.r + 0.01f)), 1), Mathf.Max(ground_color.g - mixingStrengthDown * ground_color.g, 0), Mathf.Max(ground_color.b - mixingStrengthDown * ground_color.b, 0));
-
+       
+        // simple 8 colors
         //if (ground_color == Color.white)
         //    return car_color;
-        //return new Color(Mathf.Max(ground_color.r, car_color.r), Mathf.Max(ground_color.g, car_color.g), Mathf.Max(ground_color.b, car_color.b));//car_color;
+        //return new Color(Mathf.Max(ground_color.r, car_color.r), Mathf.Max(ground_color.g, car_color.g), Mathf.Max(ground_color.b, car_color.b));
 
     }
     private void BrushAreaWithColor(Vector2 pixelUV, Color color, int size)

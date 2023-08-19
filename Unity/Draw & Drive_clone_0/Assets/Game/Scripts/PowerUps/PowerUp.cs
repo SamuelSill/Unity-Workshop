@@ -36,7 +36,10 @@ public abstract class PowerUp : NetworkBehaviour
     }
     private void RemoveNotification()
     {
-        NotificationMessage.Remove(message);
+        if (NotificationMessage != null)
+        {
+            NotificationMessage.Remove(message);
+        }
     }
     private IEnumerator speedEffect(Collider2D player)
     {

@@ -29,7 +29,7 @@ public class TimerStarter : NetworkBehaviour
         if (!GameStarted)
         {
             float timePassed = Time.time - startTime;
-            // Check if the desired duration (3 seconds in this case) has passed
+            // Check if the desired duration has passed
             if (timePassed < duration || PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS)
             {
                 if (IsServer)
@@ -100,14 +100,26 @@ public class TimerStarter : NetworkBehaviour
               
         }
     }
-
+    Texture2D Resize(Texture2D texture2D, int targetX, int targetY)
+    {
+        RenderTexture rt = new RenderTexture(targetX, targetY, 24);
+        RenderTexture.active = rt;
+        Graphics.Blit(texture2D, rt);
+        Texture2D result = new Texture2D(targetX, targetY);
+        result.ReadPixels(new Rect(0, 0, targetX, targetY), 0, 0);
+        result.Apply();
+        return result;
+    }
 
     private float CompareTexturesByColorPercentage(Texture2D tex1, Texture2D tex2)
     {
-        int matchingPixels = 0;
-        int totalPixels = tex1.width * tex1.height;
-
+        float rowPixels = 0;
+        float totalPixelAvg = 0;
+        //int matchingPixels = 0;
+        //int totalPixels = tex1.width * tex1.height;
+        tex2 = Resize(tex2, tex1.width, tex1.height);
         // Loop through each pixel of the textures
+        
         for (int x = 0; x < tex1.width; x++)
         {
             for (int y = 0; y < tex1.height; y++)
@@ -115,19 +127,30 @@ public class TimerStarter : NetworkBehaviour
                 // Get the color of each pixel from the textures
                 Color color1 = tex1.GetPixel(x, y);
                 Color color2 = tex2.GetPixel(x, y);
-
                 // Compare the colors of the pixels
-                if (color1 == color2)
+
+                // if (Mathf.Sqrt(Mathf.Pow(color1.r - color2.r, 2) + Mathf.Pow(color1.g - color2.g, 2) + Mathf.Pow(color1.b - color2.b, 2)) <= Mathf.Sqrt(2))
+                // {
+                //     matchingPixels++;
+                //}
+
+                if (!color1.Equals(Color.white) && !color2.Equals(Color.white))
                 {
-                    matchingPixels++;
+                    rowPixels += (Mathf.Abs(color1.r - color2.r) + Mathf.Abs(color1.g - color2.g) + Mathf.Abs(color1.b - color2.b)) / 3;
+                }
+                else {
+                    //Pixel not Colored is scored 0.
+                    rowPixels += 1;
                 }
             }
+            totalPixelAvg += rowPixels / tex1.height;
+            rowPixels = 0;
         }
 
         // Calculate the percentage of matching pixels
-        float similarityPercentage = (float)matchingPixels / totalPixels;
+        //float similarityPercentage = (float)matchingPixels / totalPixels;
 
-        return similarityPercentage;
+        return (1-(totalPixelAvg / tex1.width)) * 100;
     }
 }
 

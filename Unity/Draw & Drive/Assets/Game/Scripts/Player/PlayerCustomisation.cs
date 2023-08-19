@@ -6,6 +6,8 @@ using System;
 
 public class PlayerCustomisation : NetworkBehaviour
 {
+
+
     Dictionary<ulong, Tuple<string, string>> clientSkins;
 
     [SerializeField]
@@ -16,9 +18,9 @@ public class PlayerCustomisation : NetworkBehaviour
 
     public CarColor currentColor = CarColor.blue;
 
-    public Color getColor() 
+    public Color getColor()
     {
-        if(currentColor.Equals(CarColor.blue))
+        if (currentColor.Equals(CarColor.blue))
         {
             return Color.blue;
         }
@@ -30,7 +32,8 @@ public class PlayerCustomisation : NetworkBehaviour
         return Color.green;
     }
 
-    private void AdjustSize() {
+    private void AdjustSize()
+    {
         BrushSize = (int)(ServerSession.CurrentCarThickness * transform.localScale.x);
     }
 
@@ -83,7 +86,7 @@ public class PlayerCustomisation : NetworkBehaviour
 
         CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.blue));
         CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.green));
-        CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.red));        
+        CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.red));
     }
 
     private void CreateChildObject(Transform parent, Sprite sprite)
@@ -99,7 +102,7 @@ public class PlayerCustomisation : NetworkBehaviour
 
     private void SetModuleOfSameColor()
     {
-        if (IsOwner) 
+        if (IsOwner)
         {
             char colorLetter = currentColor.ToString()[0];
             updateSkinColorServerRpc(colorLetter);
@@ -146,4 +149,5 @@ public class PlayerCustomisation : NetworkBehaviour
         AdjustSize();
         SetModuleOfSameColor();
     }
+
 }

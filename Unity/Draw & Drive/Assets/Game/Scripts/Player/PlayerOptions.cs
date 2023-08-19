@@ -1,37 +1,99 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using System.Collections;
 
 public class PlayerOptions : NetworkBehaviour
 {
+    
+    private int highlightBaseDuration = 10;
+    private bool decending = true;
+    int maxHighlightValue = 255;
+    int minxHighlightValue = 100;
+    int gapValue = 10;
+    SpriteRenderer highlightAura;
+
+    ulong OwnerId;
+    private ulong allyMobileID = 2;
+    private ulong enemyMobileID = 2;
+
     [SerializeField] private List<Vector3> spawnPositionList;
     private PlayerCustomisation playerCustomisation;
     public static int PositionNetworkSpawned { get; private set; }
-    
+
     public override void OnNetworkSpawn()
     {
-        if (IsServer) {
+        if (IsServer)
+        {
             PositionNetworkSpawned = 0;
-            
+
         }
         //transform.position = spawnPositionList[((int)OwnerClientId) % spawnPositionList.Count];
-        if (IsOwner) {
+        OwnerId = OwnerClientId;
+        if (IsOwner)
+        {
             int isRight = 0;
-            if (ServerSession.CurrentTeam.Equals("right")) {
+            if (ServerSession.CurrentTeam.Equals("right"))
+            {
                 isRight = 1;
             }
-            changePlayerPositionServerRpc((int)OwnerClientId % 3 + 3 * isRight);
+
+            if (gameObject.name.Contains("Mobile"))
+            {
+
+                if (ServerSession.EnemyLobbyPlayers.ContainsKey(NetworkManegerUI.GetCurrentMobileUser()))
+                {
+                    OwnerId = enemyMobileID;
+                    enemyMobileID--;
+
+                    // On enemy canvas (not the host canvas)
+                    isRight = (isRight + 1) % 2;
+                }
+                else
+                {
+                    OwnerId = allyMobileID;
+                    allyMobileID--;
+                }
+
+
+            }
+            changePlayerPositionServerRpc((int)OwnerId % 3 + 3 * isRight);
+        }
+        else 
+        { 
+        
         }
         playerCustomisation = GetComponent<PlayerCustomisation>();
-        playerCustomisation.currentColor = (CarColor)(OwnerClientId % 3);
-        
+        playerCustomisation.currentColor = (CarColor)(OwnerId % 3);
+
+        if (IsOwner)
+        {
+            Transform highlightAuraTrans = transform.Find("Hightlight");
+            if (highlightAuraTrans != null)
+            {
+                highlightAura = highlightAuraTrans.GetComponent<SpriteRenderer>();
+                highlightAura.gameObject.SetActive(true);
+                RunHighlightAffect();
+            }
+            
+        }
     }
     private void Start()
     {
-        Debug.Log("PlayerOptions start");
+        //Debug.Log("PlayerOptions start");
         if (gameObject.name.Contains("Mobile"))
         {
-            Debug.Log("Mobile user in PlayerOptions");
+            //Debug.Log("players enemys: "+ ServerSession.EnemyLobbyPlayers.Count);
+            //Debug.Log("players allys: " + ServerSession.LobbyPlayers.Count);
+           // if (ServerSession.EnemyLobbyPlayers.TryGetValue(ServerSession.Username, out ServerSession.UserGameStats enemyUser))
+            //{
+           //     Debug.Log("enemy users: " + enemyUser.username);
+           // }
+           // if (ServerSession.LobbyPlayers.TryGetValue(ServerSession.Username, out ServerSession.UserGameStats FriendlyUser))
+           // {
+            //    Debug.Log("Friendly user: " + FriendlyUser.username);
+           // }
+
             int ownerID = 1;
             int isRight = 0;
             if (ServerSession.CurrentTeam.Equals("right"))
@@ -39,16 +101,31 @@ public class PlayerOptions : NetworkBehaviour
                 isRight = 1;
             }
             int index = ownerID + (3 * isRight);
-            changePlayerPositionClientRpc(index);
-            transform.position = spawnPositionList[index % spawnPositionList.Count];
-            PositionNetworkSpawned++;
-            playerCustomisation = GetComponent<PlayerCustomisation>();
-            playerCustomisation.currentColor = (CarColor)(ownerID % 3);
+            GetMobilePlayerColorServerRpc();
+            //changePlayerPositionClientRpc(index);
+            //transform.position = spawnPositionList[index % spawnPositionList.Count];
+            //PositionNetworkSpawned++;
+            //playerCustomisation = GetComponent<PlayerCustomisation>();
+            //playerCustomisation.currentColor = (CarColor)(ownerID % 3);
         }
-        
+
     }
+
     [ServerRpc(RequireOwnership = false)]
-    private void changePlayerPositionServerRpc(int index) {
+    private void GetMobilePlayerColorServerRpc()
+    {
+        GetMobilePlayerColorClientRpc(OwnerId);
+    }
+    [ClientRpc]
+    private void GetMobilePlayerColorClientRpc(ulong OwnerId)
+    {
+        playerCustomisation = GetComponent<PlayerCustomisation>();
+        playerCustomisation.currentColor = (CarColor)(OwnerId % 3);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void changePlayerPositionServerRpc(int index)
+    {
         transform.position = spawnPositionList[index % spawnPositionList.Count];
         changePlayerPositionClientRpc(index);
         PositionNetworkSpawned++;
@@ -64,5 +141,38 @@ public class PlayerOptions : NetworkBehaviour
     public NetworkObject GetNetworkObject()
     {
         return NetworkObject;
+    }
+    private IEnumerator RunHighlightAffect()
+    {
+        if (highlightAura != null)
+        {
+            if (decending)
+            {
+                Color newColor = highlightAura.color;
+                newColor.b -= gapValue;
+                newColor.r -= gapValue;
+                newColor.g -= gapValue;
+                highlightAura.color = newColor;
+                if (highlightAura.color.b <= minxHighlightValue)
+                {
+                    decending = false;
+                }
+            }
+            else {
+                Color newColor = highlightAura.color;
+                newColor.b += gapValue;
+                highlightAura.color = newColor;
+                if (highlightAura.color.b >= maxHighlightValue)
+                {
+                    decending = true;
+                }
+            }
+        }
+
+        yield return new WaitForSeconds(highlightBaseDuration);
+        if (highlightAura != null)
+        {
+            highlightAura.gameObject.SetActive(false);
+        }
     }
 }
