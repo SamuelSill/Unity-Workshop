@@ -17,7 +17,6 @@ public class ServerSession : MonoBehaviour
     // User Details
     private static string _loggedUsername = "";
     private static string _loggedPassword = "";
-    private static int _userMoney = 0;
     private static List<string> _userFriends = new();
 
     // User Paintings
@@ -41,7 +40,7 @@ public class ServerSession : MonoBehaviour
 
     // Properties
     public static string Username => _loggedUsername;
-    public static int Money => _userMoney;
+    public static int Money { get; set; }
     public static List<string> Friends => _userFriends;
     public static List<Painting> Paintings => _userPaintings;
     public static List<Achievement> Achievements => _userAchievements;
@@ -191,7 +190,7 @@ public class ServerSession : MonoBehaviour
     public static void PurchaseCar(string carID, Action carBoughtSuccessfully)
     {
         Car carToBuy = _cars.Find(car => car.id == carID);
-        if (_userMoney >= carToBuy.price)
+        if (Money >= carToBuy.price)
         {
             session.StartCoroutine(session.BuyCar(carToBuy, carBoughtSuccessfully));
         }
@@ -205,7 +204,7 @@ public class ServerSession : MonoBehaviour
 
         if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
         {
-            _userMoney -= carToBuy.price;
+            Money -= carToBuy.price;
             _ownedCars.Add(new PlayerCar
             {
                 id = carToBuy.id,
@@ -225,7 +224,7 @@ public class ServerSession : MonoBehaviour
     public static void PurchaseUpgrade(string upgradeID, Action upgradeBoughtSuccessfully)
     {
         int price = upgradeID == "speed" ? SpeedUpgradeCost : upgradeID == "thickness" ? ThicknessUpgradeCost : SteeringUpgradeCost;
-        if (_userMoney >= price)
+        if (Money >= price)
         {
             session.StartCoroutine(session.BuyUpgrade(upgradeID, price, upgradeBoughtSuccessfully));
         }
@@ -239,7 +238,7 @@ public class ServerSession : MonoBehaviour
 
         if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
         {
-            _userMoney -= price;
+            Money -= price;
 
             switch (upgradeID)
             {
@@ -262,7 +261,7 @@ public class ServerSession : MonoBehaviour
     {
         Skin skin = CurrentGameCar.skins.Find(skin => skin.id == skinID);
         
-        if (_userMoney >= skin.price)
+        if (Money >= skin.price)
         {
             session.StartCoroutine(session.BuySkin(skin, skinBoughtSuccessfully));
         }
@@ -276,7 +275,7 @@ public class ServerSession : MonoBehaviour
 
         if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
         {
-            _userMoney -= skin.price;
+            Money -= skin.price;
             CurrentCar.skins.Add(skin.id);
 
             PerformAction(skinBoughtSuccessfully);
@@ -416,7 +415,7 @@ public class ServerSession : MonoBehaviour
         // User Details
         _loggedUsername = "";
         _loggedPassword = "";
-        _userMoney = 0;
+        Money = 0;
         _userFriends.Clear();
 
         // User Paintings
@@ -527,7 +526,7 @@ public class ServerSession : MonoBehaviour
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
-            _userMoney = int.Parse(getRequest.downloadHandler.text);
+            Money = int.Parse(getRequest.downloadHandler.text);
         }
     }
 
@@ -659,12 +658,6 @@ public class ServerSession : MonoBehaviour
         }
     }
 
-    [System.Serializable]
-    class SelectedCar
-    {
-        public int selectedCarIndex;
-    }
-
     IEnumerator GetUserSelectedCar()
     {
         UnityWebRequest selectedCarRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/cars/selected?username={_loggedUsername}&password={_loggedPassword}");
@@ -672,7 +665,7 @@ public class ServerSession : MonoBehaviour
 
         if (selectedCarRequest.result != UnityWebRequest.Result.ConnectionError && selectedCarRequest.responseCode == 200)
         {
-            _selectedCarIndex = JsonUtility.FromJson<SelectedCar>($"{{\"selectedCar\": {selectedCarRequest.downloadHandler.text}}}").selectedCarIndex;
+            int.TryParse(selectedCarRequest.downloadHandler.text, out _selectedCarIndex);
         }
     }
 

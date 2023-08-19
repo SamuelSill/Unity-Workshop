@@ -28,6 +28,16 @@ public class PostGameUiActions : NetworkBehaviour
         LeftPresantageText.text = leftTeamPresentage.ToString("F2") + "%";
         RightPresantageText.text = rightTeamPresentage.ToString("F2") + "%";
 
+        if (winner == Teams.Draw || 
+            (ServerSession.CurrentTeam != winner.ToString().ToLower()))
+        {
+            ServerSession.Money += 50;
+        }
+        else
+        {
+            ServerSession.Money += 100;
+        }
+
         NetworkManager.Singleton.OnClientDisconnectCallback += OnPlayerDisconnect;
 
     }

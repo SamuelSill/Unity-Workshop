@@ -500,12 +500,14 @@ def upgrade_car(username: str,
     if upgrade_id not in ("speed", "steering", "thickness"):
         return "Upgrade Not Found!"
 
-    if (owned_car := next((owned_car
-                           for owned_car in player_found["cars"]
-                           if owned_car["id"] == car_id),
-                          None)) is None:
+    if (owned_car_index := next((car_index
+                                 for car_index in range(len(player_found["cars"]))
+                                 if player_found["cars"][car_index]["id"] == car_id),
+                                None)) is None:
         response.status_code = status.HTTP_409_CONFLICT
         return "Given Player Doesn't Own the Car!"
+
+    owned_car: dict[str, ...] = player_found["cars"][owned_car_index]
 
     if owned_car["upgrades"][upgrade_id] == len(car_found["upgrades"][upgrade_id]):
         response.status_code = status.HTTP_409_CONFLICT
@@ -518,7 +520,7 @@ def upgrade_car(username: str,
     players_collection.update_one({"username": username}, {
         "$inc": {
             "money": -car_found["upgrades"][upgrade_id][owned_car["upgrades"][upgrade_id]],
-            f"upgrades.{upgrade_id}": 1
+            f"cars.{owned_car_index}.upgrades.{upgrade_id}": 1
         }
     })
 
@@ -662,7 +664,8 @@ def add_new_game(username: str,
     players_collection.update_one({"username": username}, {
         "$inc": {
             ("games_won" if new_game.win else "games_lost"): 1,
-            "sum_accuracy": new_game.accuracy
+            "sum_accuracy": new_game.accuracy,
+            "money": 100 if new_game.win else 50
         }
     })
 

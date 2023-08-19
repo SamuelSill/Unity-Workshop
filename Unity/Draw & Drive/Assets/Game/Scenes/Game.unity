@@ -2157,6 +2157,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5743776636376613549, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
+      propertyPath: m_Color.a
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5743776636376613549, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
+      propertyPath: m_Color.b
+      value: 0.16301176
+      objectReference: {fileID: 0}
+    - target: {fileID: 5743776636376613549, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
+      propertyPath: m_Color.g
+      value: 0.16301176
+      objectReference: {fileID: 0}
+    - target: {fileID: 5743776636376613549, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
+      propertyPath: m_Color.r
+      value: 0.1792453
+      objectReference: {fileID: 0}
     - target: {fileID: 8408751891094374393, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
       propertyPath: m_Name
       value: TrafficLight

@@ -38,7 +38,19 @@ public class CarSprites : MonoBehaviour
     // Start is called before the first frame update
     public void Start()
     {
-        staticSkins = skins;
+        staticSkins = new List<TripleObjects>();
+        foreach (var skin in skins)
+        {
+            staticSkins.Add(
+                new TripleObjects() { 
+                    blue = skin.blue, 
+                    carID = skin.carID, 
+                    green = skin.green, 
+                    red = skin.red, 
+                    skinID = skin.skinID 
+                }
+            );
+        }
     }
 
     // Update is called once per frame
