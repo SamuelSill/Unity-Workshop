@@ -17,6 +17,7 @@ public class PlayerBrush : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
+        
         PlayerCustomisation = GetComponent<PlayerCustomisation>();
         if (IsServer && clientpallets == null)
         {
@@ -30,10 +31,10 @@ public class PlayerBrush : NetworkBehaviour
             {
                 teamID = 1;
             }
-            if (IsHost && gameObject.name.Contains("Mobile") && ServerSession.EnemyLobbyPlayers.ContainsKey(NetworkManegerUI.GetCurrentMobileUser()))
+            if (IsHost && gameObject.name.Contains("Mobile") && ServerSession.EnemyLobbyPlayers.ContainsKey(gameObject.GetComponent<PlayerOptions>().UserName))
             {
-                // On enemy canvas (not the host canvas)
-                teamID = (teamID + 1) % 2;
+                    // On enemy canvas (not the host canvas)
+                    teamID = (teamID + 1) % 2;
             }
             //if(gameObject.name.Contains("Mobile")) {}
             InformServerOfCarSkinServerRpc(OwnerClientId, teamID);

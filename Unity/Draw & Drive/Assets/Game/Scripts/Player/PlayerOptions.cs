@@ -5,7 +5,8 @@ using System.Collections;
 
 public class PlayerOptions : NetworkBehaviour
 {
-    
+    public string UserName {get; set;}
+
     private int highlightBaseDuration = 10;
     private bool decending = true;
     int maxHighlightValue = 255;
@@ -40,9 +41,9 @@ public class PlayerOptions : NetworkBehaviour
 
             if (gameObject.name.Contains("Mobile"))
             {
-
-                if (ServerSession.EnemyLobbyPlayers.ContainsKey(NetworkManegerUI.GetCurrentMobileUser()))
+                if (ServerSession.EnemyLobbyPlayers.ContainsKey(UserName))
                 {
+                    Debug.Log("mobile enemy");
                     OwnerId = enemyMobileID;
                     enemyMobileID--;
 
@@ -51,6 +52,7 @@ public class PlayerOptions : NetworkBehaviour
                 }
                 else
                 {
+                    Debug.Log("mobile ally");
                     OwnerId = allyMobileID;
                     allyMobileID--;
                 }

@@ -793,7 +793,6 @@ public class ServerSession : MonoBehaviour
     [Serializable]
     public class MobileControls
     {
-        //mobile data: {"id":"MobileControls","gyro":{"x":"0.00","y":"0.00","z":"0.00"},"drive":"stop","username":"maayan"}
         public string id;
         public float direction; // -1 to 1
         public string drive;
@@ -852,6 +851,7 @@ public class ServerSession : MonoBehaviour
 
                     if (userJoinedMessage.mobile)
                     {
+                        //Debug.Log("added mobile user to queue: " + userJoinedMessage.username);
                         PlayerMobileControls.Add(userJoinedMessage.username, new Queue<MobileControls>());
                     }
                 }
@@ -888,7 +888,7 @@ public class ServerSession : MonoBehaviour
                 {
                     MobileControls mobileControls = JsonUtility.FromJson<MobileControls>(e.Data);
                     //Debug.Log("mobile data: " + e.Data);
-                    //Debug.Log("mobile controls: [" + mobileControls.gyro.x + ", " + mobileControls.gyro.y + ", " + mobileControls.gyro.z + "], " + mobileControls.drive + ", " + mobileControls.username);
+                    //Debug.Log("mobile controls: " + mobileControls.direction + ", " + mobileControls.drive + ", " + mobileControls.username);
                     PlayerMobileControls[mobileControls.username].Enqueue(mobileControls);
                 }
             };
