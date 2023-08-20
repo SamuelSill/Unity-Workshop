@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class SignupMenu : MonoBehaviour
 {
@@ -10,12 +11,15 @@ public class SignupMenu : MonoBehaviour
     public TMP_InputField usernameField;
     public TMP_InputField passwordField;
     public TMP_InputField passwordConfirmation;
+    public Button signupButton;
 
     public GameObject loginMenu;
+    public GameObject signupMenu;
 
     // Start is called before the first frame update
     void Start()
     {
+        signupButton.interactable = true;
     }
 
     // Update is called once per frame
@@ -31,6 +35,8 @@ public class SignupMenu : MonoBehaviour
             return;
         }
 
+        signupButton.interactable = false;
+
         ServerSession.CreateUser(
             usernameField.text, 
             passwordField.text,
@@ -38,10 +44,13 @@ public class SignupMenu : MonoBehaviour
             lastNameField.text,
             description.text,
             () => {
-                gameObject.SetActive(false);
+                signupMenu.SetActive(false);
                 loginMenu.SetActive(true);
             },
-            () => PopupMessage.Display("FAILED TO SIGN UP!")
+            () => {
+                signupButton.interactable = true;
+                PopupMessage.Display("FAILED TO SIGN UP!");
+            }
         );
     }
 }

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style2.css">
+    <title>Draw&Drive-Login</title>
+</head>
+<body>
+   <div class="con">
+    <!-- form with 3 inputs, username,password , game code and a submit button -->
+        <h1 class="menuHeader"></h1>
+    <div class="formCon" >
+        <input class="FormInput" type="text" id="gamecode" name="gamecode" placeholder="game code" required>
+        <button id="FormBtn" >
+            Enter
+            </button>
+        <button class="OutBtn" >
+            Log out
+            </button>
+    </div>
+   </div> 
+   <script>
+	// get user and password
+    const gamecode = document.getElementById('gamecode');
+    const btn = document.getElementById('FormBtn');
+    const outbtn = document.querySelector('.OutBtn');
+	const username= localStorage.getItem("username")
+	const password = localStorage.getItem("password")
+
+	const ws_url = (codePin) => `ws://34.31.130.92/games/ws/${codePin}/${username}/${password}/true`;
+	
+
+
+
+   btn.addEventListener('click', (e) => {
+		console.log("clicked")
+        if(gamecode.value === ''){
+            return;
+        }else{
+            window.location.href = 'game.html?codePin='+gamecode.value+'';
+            
+        }
+    })
+
+    //at log out, back to menu2.html
+    outbtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = 'index.html';
+    })
+
+
+
+    
+   </script>
+</body>
+</html>

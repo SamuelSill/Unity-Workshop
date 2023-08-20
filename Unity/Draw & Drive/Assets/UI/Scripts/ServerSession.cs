@@ -2,8 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Networking;
 using WebSocketSharp;
@@ -14,7 +17,6 @@ public class ServerSession : MonoBehaviour
     // User Details
     private static string _loggedUsername = "";
     private static string _loggedPassword = "";
-    private static int _userMoney = 0;
     private static List<string> _userFriends = new();
 
     // User Paintings
@@ -31,14 +33,14 @@ public class ServerSession : MonoBehaviour
     private static List<Car> _cars = new();
 
     //  Consts
-    private const string serverIP = "127.0.0.1:80";
-    private const string serverHTTPURL = "http://" + serverIP;
-    private const string serverWSURL = "ws://" + serverIP;
+    private const string serverIP = "unity-https-drawndrive.com";
+    private const string serverHTTPURL = "https://" + serverIP;
+    private const string serverWSURL = "wss://" + serverIP;
     private static string credentialsFile = "";
 
     // Properties
     public static string Username => _loggedUsername;
-    public static int Money => _userMoney;
+    public static int Money { get; set; }
     public static List<string> Friends => _userFriends;
     public static List<Painting> Paintings => _userPaintings;
     public static List<Achievement> Achievements => _userAchievements;
@@ -54,11 +56,14 @@ public class ServerSession : MonoBehaviour
     public static int CurrentCarSpeed => CurrentGameCar.speed + CurrentCar.upgrades.speed;
     public static int CurrentCarThickness => CurrentGameCar.thickness + CurrentCar.upgrades.thickness;
     public static int CurrentCarSteering => CurrentGameCar.steering + CurrentCar.upgrades.steering;
-    public static bool IsHost { get; private set; }
+    public static bool IsUnityHost { get; private set; }
+    public static bool IsLobbyHost { get; private set; }
     public static string HostIp => hostIp;
     public static Texture2D CurrentGamePainting { get; private set; }
     public static string CurrentTeam => currentTeam;
     public static Dictionary<string, UserGameStats> LobbyPlayers { get; private set; }
+    public static Dictionary<string, UserGameStats> EnemyLobbyPlayers { get; private set; }
+    public static Dictionary<string, Queue<MobileControls>> PlayerMobileControls { get; private set; }
     public static string LobbyCode;
 
     // Singleton
@@ -90,6 +95,17 @@ public class ServerSession : MonoBehaviour
 
             action?.Invoke();
         }
+    }
+
+    public static UserGameStats GetUser(string username)
+    {
+        return LobbyPlayers.ContainsKey(username) ? LobbyPlayers[username] : EnemyLobbyPlayers[username];
+    }
+
+    public static string UserTeam(string username)
+    {
+        string oppositeTeam = CurrentTeam.Equals("left") ? "right" : "left";
+        return LobbyPlayers.ContainsKey(username) ? CurrentTeam : oppositeTeam;
     }
 
     public static void CreateUser(
@@ -186,7 +202,7 @@ public class ServerSession : MonoBehaviour
     public static void PurchaseCar(string carID, Action carBoughtSuccessfully)
     {
         Car carToBuy = _cars.Find(car => car.id == carID);
-        if (_userMoney >= carToBuy.price)
+        if (Money >= carToBuy.price)
         {
             session.StartCoroutine(session.BuyCar(carToBuy, carBoughtSuccessfully));
         }
@@ -200,7 +216,7 @@ public class ServerSession : MonoBehaviour
 
         if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
         {
-            _userMoney -= carToBuy.price;
+            Money -= carToBuy.price;
             _ownedCars.Add(new PlayerCar
             {
                 id = carToBuy.id,
@@ -220,7 +236,7 @@ public class ServerSession : MonoBehaviour
     public static void PurchaseUpgrade(string upgradeID, Action upgradeBoughtSuccessfully)
     {
         int price = upgradeID == "speed" ? SpeedUpgradeCost : upgradeID == "thickness" ? ThicknessUpgradeCost : SteeringUpgradeCost;
-        if (_userMoney >= price)
+        if (Money >= price)
         {
             session.StartCoroutine(session.BuyUpgrade(upgradeID, price, upgradeBoughtSuccessfully));
         }
@@ -234,7 +250,7 @@ public class ServerSession : MonoBehaviour
 
         if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
         {
-            _userMoney -= price;
+            Money -= price;
 
             switch (upgradeID)
             {
@@ -257,7 +273,7 @@ public class ServerSession : MonoBehaviour
     {
         Skin skin = CurrentGameCar.skins.Find(skin => skin.id == skinID);
         
-        if (_userMoney >= skin.price)
+        if (Money >= skin.price)
         {
             session.StartCoroutine(session.BuySkin(skin, skinBoughtSuccessfully));
         }
@@ -271,16 +287,33 @@ public class ServerSession : MonoBehaviour
 
         if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
         {
-            _userMoney -= skin.price;
+            Money -= skin.price;
             CurrentCar.skins.Add(skin.id);
 
             PerformAction(skinBoughtSuccessfully);
         }
     }
 
-    public static void UploadPainting(string name, string description, string pngFilePath, Action<Painting> paintingAdded)
+    public static void DeletePainting(string name, Action paintingDeleted)
     {
-        session.StartCoroutine(session.AddPainting(name, description, pngFilePath, paintingAdded));
+        session.StartCoroutine(session.RemovePainting(name, paintingDeleted));
+    }
+
+    IEnumerator RemovePainting(string name, Action paintingDeleted)
+    {
+        var uwr = UnityWebRequest.Delete($"{serverHTTPURL}/players/paintings?username={_loggedUsername}&password={_loggedPassword}&painting={name}");
+
+        yield return uwr.SendWebRequest();
+
+        if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
+        {
+            PerformAction(paintingDeleted);
+        }
+    }
+
+    public static void UploadPainting(string name, string description, string picFilePath, Action<Painting> paintingAdded)
+    {
+        session.StartCoroutine(session.AddPainting(name, description, picFilePath, paintingAdded));
     }
 
     [System.Serializable]
@@ -288,20 +321,25 @@ public class ServerSession : MonoBehaviour
     {
         public string name;
         public List<int> data;
+        public List<int> shape;
         public string description;
+        public string fileType;
     }
 
-    IEnumerator AddPainting(string paintingName, string description, string fileLocation, Action<Painting> paintingAdded)
+    IEnumerator AddPainting(string paintingName, string description, string picFilePath, Action<Painting> paintingAdded)
     {
-        if (File.Exists(fileLocation))
+        if (File.Exists(picFilePath))
         {
-            byte[] data = File.ReadAllBytes(fileLocation);
-            Texture2D texture = new Texture2D(2, 2);
+            byte[] data = File.ReadAllBytes(picFilePath);
+
+            Texture2D texture = new(2, 2);
             texture.LoadImage(data);
 
-            AddNewPainting painting = new AddNewPainting();
+            AddNewPainting painting = new();
             painting.name = paintingName;
             painting.description = description;
+            painting.fileType = picFilePath.Substring(picFilePath.LastIndexOf('.') + 1);
+            painting.shape = new List<int>() { texture.height, texture.width };
             painting.data = new List<int>();
             foreach (byte b in data)
             {
@@ -320,16 +358,31 @@ public class ServerSession : MonoBehaviour
 
             if (uwr.result != UnityWebRequest.Result.ConnectionError && uwr.responseCode == 200)
             {
+                var jsonPainting = JsonUtility.FromJson<JsonPainting>(uwr.downloadHandler.text);
+
+                texture = new(2, 2);
+                data = new byte[jsonPainting.data.Count];
+                for (int index = 0; index < data.Length; index++)
+                {
+                    data[index] = (byte)jsonPainting.data[index];
+                }
+
+                texture.LoadImage(data);
+
                 Painting newPainting = new()
                 {
-                    description = description,
-                    name = paintingName,
-                    difficulty = float.Parse(System.Text.Encoding.UTF8.GetString(uwr.downloadHandler.data)),
+                    description = jsonPainting.description,
+                    name = jsonPainting.name,
+                    difficulty = jsonPainting.difficulty,
                     pngData = texture
                 };
 
                 _userPaintings.Add(newPainting);
                 PerformAction(() => paintingAdded.Invoke(newPainting));
+            }
+            else
+            {
+                PopupMessage.Display("Failed to Upload Painting!");
             }
         }
     }
@@ -374,7 +427,7 @@ public class ServerSession : MonoBehaviour
         // User Details
         _loggedUsername = "";
         _loggedPassword = "";
-        _userMoney = 0;
+        Money = 0;
         _userFriends.Clear();
 
         // User Paintings
@@ -390,7 +443,7 @@ public class ServerSession : MonoBehaviour
     }
 
     public static void Initialize(Action loginSuccessfulCallback, Action loginFailedCallback)
-    {
+    {       
         FileStream file;
 
         if (File.Exists(credentialsFile))
@@ -485,7 +538,7 @@ public class ServerSession : MonoBehaviour
 
         if (getRequest.result != UnityWebRequest.Result.ConnectionError && getRequest.responseCode == 200)
         {
-            _userMoney = int.Parse(getRequest.downloadHandler.text);
+            Money = int.Parse(getRequest.downloadHandler.text);
         }
     }
 
@@ -617,12 +670,6 @@ public class ServerSession : MonoBehaviour
         }
     }
 
-    [System.Serializable]
-    class SelectedCar
-    {
-        public int selectedCarIndex;
-    }
-
     IEnumerator GetUserSelectedCar()
     {
         UnityWebRequest selectedCarRequest = UnityWebRequest.Get($"{serverHTTPURL}/players/cars/selected?username={_loggedUsername}&password={_loggedPassword}");
@@ -630,7 +677,7 @@ public class ServerSession : MonoBehaviour
 
         if (selectedCarRequest.result != UnityWebRequest.Result.ConnectionError && selectedCarRequest.responseCode == 200)
         {
-            _selectedCarIndex = JsonUtility.FromJson<SelectedCar>($"{{\"selectedCar\": {selectedCarRequest.downloadHandler.text}}}").selectedCarIndex;
+            int.TryParse(selectedCarRequest.downloadHandler.text, out _selectedCarIndex);
         }
     }
 
@@ -681,9 +728,14 @@ public class ServerSession : MonoBehaviour
         }
     }
 
-    public static void AddNewGame(bool hasWon, float accuracy, Action gameSaved, Action gameFailedSaving)
+    public static void AddNewGame(bool hasWon, float accuracy, string username = null)
     {
-        session.StartCoroutine(session.AddFinishedGame(hasWon, accuracy, gameSaved, gameFailedSaving));
+        if (username == null)
+        {
+            username = ServerSession.Username;
+        }
+
+        session.StartCoroutine(session.AddFinishedGame(hasWon, accuracy, username));
     }
 
     [Serializable]
@@ -693,13 +745,13 @@ public class ServerSession : MonoBehaviour
         public float accuracy;
     }
 
-    IEnumerator AddFinishedGame(bool hasWon, float accuracy, Action gameSaved, Action gameFailedSaving)
+    IEnumerator AddFinishedGame(bool hasWon, float accuracy, string username)
     {
         NewGame painting = new NewGame();
         painting.win = hasWon;
         painting.accuracy = accuracy;
 
-        var uwr = new UnityWebRequest($"{serverHTTPURL}/players/games?username={_loggedUsername}&password={_loggedPassword}", "POST");
+        var uwr = new UnityWebRequest($"{serverHTTPURL}/players/games?username={username}", "POST");
         byte[] jsonToSend = new System.Text.UTF8Encoding().GetBytes(JsonUtility.ToJson(painting));
 
         uwr.uploadHandler = new UploadHandlerRaw(jsonToSend);
@@ -710,11 +762,7 @@ public class ServerSession : MonoBehaviour
 
         if (uwr.result == UnityWebRequest.Result.ConnectionError || uwr.responseCode != 200)
         {
-            PerformAction(gameFailedSaving);
-        }
-        else
-        {
-            PerformAction(gameSaved);
+            PopupMessage.Display("Failed to save game results!");
         }
     }
 
@@ -751,6 +799,16 @@ public class ServerSession : MonoBehaviour
     {
         public string username;
         public PlayerCar selected_car;
+        public bool mobile;
+    }
+
+    [Serializable]
+    public class MobileControls
+    {
+        public string id;
+        public float direction; // -1 to 1
+        public string drive;
+        public string username;
     }
 
     static void PerformAction(Action action)
@@ -774,7 +832,35 @@ public class ServerSession : MonoBehaviour
 
         currentTeam = gameStartedMessage.team;
         hostIp = gameStartedMessage.host_ip;
-        IsHost = gameStartedMessage.is_host;
+        IsUnityHost = gameStartedMessage.is_host;
+        EnemyLobbyPlayers = new Dictionary<string, UserGameStats>();
+        foreach (var enemyPlayer in gameStartedMessage.enemy_lobby)
+        {
+            EnemyLobbyPlayers.Add(enemyPlayer.username, enemyPlayer);
+        }
+
+        PlayerMobileControls = new Dictionary<string, Queue<MobileControls>>();
+
+        foreach (var enemyPlayer in LobbyPlayers.Values)
+        {
+            if (enemyPlayer.mobile)
+            {
+                PlayerMobileControls.Add(enemyPlayer.username, new Queue<MobileControls>());
+            }
+        }
+
+        foreach (var enemyPlayer in EnemyLobbyPlayers.Values)
+        {
+            if (enemyPlayer.mobile)
+            {
+                PlayerMobileControls.Add(enemyPlayer.username, new Queue<MobileControls>());
+            }
+        }
+    }
+
+    public static void SetLobbyFriendsOnly(bool isFriendsOnly)
+    {
+        socket?.Send($"{{\"id\": \"FriendsOnly\", \"activate\": \"{isFriendsOnly}\"}}");
     }
 
     public static void CreateGame(Action gameCreated, 
@@ -784,6 +870,7 @@ public class ServerSession : MonoBehaviour
     {
         Task.Run(() =>
         {
+            IsLobbyHost = true;
             LobbyPlayers = new Dictionary<string, UserGameStats>();
             socket = new WebSocket($"{serverWSURL}/games/ws/{_loggedUsername}/{_loggedPassword}");
             socket.OnMessage += (sender, e) =>
@@ -792,7 +879,11 @@ public class ServerSession : MonoBehaviour
                 if (message.id == "UserJoined")
                 {
                     UserJoinedMessage userJoinedMessage = JsonUtility.FromJson<UserJoinedMessage>(e.Data);
-                    UserGameStats userStats = new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car };
+                    UserGameStats userStats = new UserGameStats {
+                        username = userJoinedMessage.username,
+                        selected_car = userJoinedMessage.selected_car,
+                        mobile = userJoinedMessage.mobile
+                    };
                     LobbyPlayers.Add(userStats.username, userStats);
                     PerformAction(() => userJoined.Invoke(userStats));
                 }
@@ -825,9 +916,25 @@ public class ServerSession : MonoBehaviour
                     ErrorMessage errorMessage = JsonUtility.FromJson<ErrorMessage>(e.Data);
                     PopupMessage.Display(errorMessage.message);
                 }
+                else if (message.id == "MobileControls")
+                {
+                    MobileControls mobileControls = JsonUtility.FromJson<MobileControls>(e.Data);
+                    //Debug.Log("mobile data: " + e.Data);
+                    //Debug.Log("mobile controls: " + mobileControls.direction + ", " + mobileControls.drive + ", " + mobileControls.username);
+
+                    if (PlayerMobileControls != null && PlayerMobileControls.ContainsKey(mobileControls.username))
+                    {
+                        PlayerMobileControls[mobileControls.username].Enqueue(mobileControls);
+                    }
+                }
             };
 
             socket.Connect();
+
+            if (!socket.IsAlive)
+            {
+                PopupMessage.Display("Failed creating lobby!");
+            }
         });
     }
 
@@ -856,9 +963,10 @@ public class ServerSession : MonoBehaviour
     {
         Task.Run(() =>
         {
+            IsLobbyHost = false;
             LobbyCode = gameCode;
             LobbyPlayers = new Dictionary<string, UserGameStats>();
-            socket = new WebSocket($"{serverWSURL}/games/ws/{gameCode}/{_loggedUsername}/{_loggedPassword}");
+            socket = new WebSocket($"{serverWSURL}/games/ws/{gameCode}/{_loggedUsername}/{_loggedPassword}/false");
             socket.OnMessage += (sender, e) =>
             {
                 WebSocketMessage message = JsonUtility.FromJson<WebSocketMessage>(e.Data);
@@ -867,7 +975,12 @@ public class ServerSession : MonoBehaviour
                     JoinMessage joinMessage = JsonUtility.FromJson<JoinMessage>(e.Data);
                     foreach (var player in joinMessage.players)
                     {
-                        LobbyPlayers.Add(player.username, new UserGameStats { username = player.username, selected_car = player.selected_car});
+                        LobbyPlayers.Add(player.username, 
+                            new UserGameStats { 
+                                username = player.username, 
+                                selected_car = player.selected_car,
+                                mobile = player.mobile
+                            });
                     }
 
                     PerformAction(gameJoined);
@@ -875,9 +988,13 @@ public class ServerSession : MonoBehaviour
                 else if (message.id == "UserJoined")
                 {
                     UserJoinedMessage userJoinedMessage = JsonUtility.FromJson<UserJoinedMessage>(e.Data);
-                    UserGameStats userStats = new() { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car };
+                    UserGameStats userStats = new() { 
+                        username = userJoinedMessage.username, 
+                        selected_car = userJoinedMessage.selected_car,
+                        mobile = userJoinedMessage.mobile
+                    };
                     LobbyPlayers.Add(userStats.username, userStats);
-                    PerformAction(() => userJoined.Invoke(new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car }));
+                    PerformAction(() => userJoined.Invoke(userStats));
                 }
                 else if (message.id == "UserLeft")
                 {
@@ -910,12 +1027,30 @@ public class ServerSession : MonoBehaviour
             };
 
             socket.Connect();
+
+            if (!socket.IsAlive)
+            {
+                PopupMessage.Display("Failed joining lobby!");
+            }
         });
     }
 
     public static void StartGame()
     {
-        socket?.Send("{\"id\": \"StartGame\"}");
+        var host = Dns.GetHostEntry(Dns.GetHostName());
+        foreach (var ip in host.AddressList)
+        {
+            if (ip.AddressFamily == AddressFamily.InterNetwork)
+            {
+                socket?.Send($"{{\"id\": \"StartGame\", \"ip\": \"{ip}\"}}");
+                return;
+            }
+        }
+    }
+
+    public static void FinishGame()
+    {
+        socket?.Send("{\"id\": \"FinishGame\"}");
     }
 
     public static bool IsInLobby()
@@ -942,6 +1077,7 @@ public class ServerSession : MonoBehaviour
         public string id;
         public string username;
         public PlayerCar selected_car;
+        public bool mobile;
     }
 
     [Serializable]
@@ -966,5 +1102,6 @@ public class ServerSession : MonoBehaviour
         public bool is_host;
         public List<int> painting;
         public string team;
+        public List<UserGameStats> enemy_lobby;
     }
 }

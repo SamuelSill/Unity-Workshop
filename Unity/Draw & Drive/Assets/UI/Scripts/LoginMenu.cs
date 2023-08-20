@@ -9,10 +9,12 @@ public class LoginMenu : MonoBehaviour
     public TMP_InputField usernameField;
     public TMP_InputField passwordField;
     public Toggle rememberMeToggle;
+    public Button loginButton;
 
     // Start is called before the first frame update
     void Start()
     {
+        loginButton.interactable = true;
     }
 
     // Update is called once per frame
@@ -23,12 +25,18 @@ public class LoginMenu : MonoBehaviour
 
     public void Login()
     {
+        loginButton.interactable = false;
         ServerSession.Initialize(
             usernameField.text,
             passwordField.text,
             rememberMeToggle.isOn,
-            () => SceneManager.LoadScene(gameScene),
-            () => PopupMessage.Display("FAILED TO LOGIN!")
+            () => {
+                SceneManager.LoadScene(gameScene);
+            },
+            () => {
+                loginButton.interactable = true;
+                PopupMessage.Display("FAILED TO LOGIN!");
+            }
         );
     }
 }

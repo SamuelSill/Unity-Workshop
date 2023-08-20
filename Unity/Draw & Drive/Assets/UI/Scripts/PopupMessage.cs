@@ -18,6 +18,7 @@ public class PopupMessage : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        popupMessageText.enabled = false;
     }
 
     // Update is called once per frame
@@ -26,10 +27,12 @@ public class PopupMessage : MonoBehaviour
         currentDuration -= Math.Min(Time.deltaTime, currentDuration);
         if (currentDuration > 0)
         {
+            popupMessageText.enabled = true;
             popupMessageText.text = currentMessage;
         }
         else
         {
+            popupMessageText.enabled = false;
             popupMessageText.text = "";
         }
     }

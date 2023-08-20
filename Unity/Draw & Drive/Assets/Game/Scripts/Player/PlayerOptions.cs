@@ -1,44 +1,93 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using System.Collections;
 
 public class PlayerOptions : NetworkBehaviour
 {
+    public string UserName {get; set;}
+    static Dictionary<ulong, int> playerLeftLocations;
+    static Dictionary<ulong, int> playerRightLocations;
+
     [SerializeField] private List<Vector3> spawnPositionList;
     private PlayerCustomisation playerCustomisation;
-    public static int PositionNetworkSpawned { get; private set; }
-    
+
     public override void OnNetworkSpawn()
     {
-        if (IsServer) {
-            PositionNetworkSpawned = 0;
-        }
-        //transform.position = spawnPositionList[((int)OwnerClientId) % spawnPositionList.Count];
-        if (IsOwner) {
-            int isRight = 0;
-            if (ServerSession.CurrentTeam.Equals("right")) {
-                isRight = 1;
+        if (IsHost)
+        {
+            if (!gameObject.name.Contains("Mobile") && IsOwner)
+            {
+                playerLeftLocations = new Dictionary<ulong, int>();
+                playerRightLocations = new Dictionary<ulong, int>();
             }
-            changePlayerPositionServerRpc((int)OwnerClientId % 3 + 3 * isRight);
+
+            if (gameObject.name.Contains("Mobile"))
+            {
+                GenerateLocationServerRpc(NetworkObjectId, ServerSession.UserTeam(UserName));
+            }
+            else if (IsOwner)
+            {
+                GenerateLocationServerRpc(NetworkObjectId, ServerSession.CurrentTeam);
+            }
         }
-        playerCustomisation = GetComponent<PlayerCustomisation>();
-        playerCustomisation.currentColor = (PlayerCustomisation.moduleColors)(OwnerClientId % 3);
-        
+        else
+        {
+            if (IsOwner)
+            {
+                GenerateLocationServerRpc(NetworkObjectId, ServerSession.CurrentTeam);
+            }
+            else
+            {
+                GetLocationServerRpc(NetworkObjectId);
+            }
+        }
     }
+
     [ServerRpc(RequireOwnership = false)]
-    private void changePlayerPositionServerRpc(int index) {
-        transform.position = spawnPositionList[index % spawnPositionList.Count];
-        changePlayerPositionClientRpc(index);
-        PositionNetworkSpawned++;
+    void GenerateLocationServerRpc(ulong objectNetId, string carTeam)
+    {
+        var playerLocations = carTeam.Equals("left") ? playerLeftLocations : playerRightLocations;
+        var matchingStartIndex = carTeam.Equals("left") ? 0 : 3;
+
+        playerLocations.Add(objectNetId, playerLocations.Count);
+        int index = matchingStartIndex + playerLocations[objectNetId];
+
+        // Update position
+        transform.position = spawnPositionList[index];
+        ChangePlayerPositionClientRpc(index);
+
+        // Update color
+        ChangePlayerColorClientRpc(index);
     }
+
+    [ServerRpc(RequireOwnership = false)]
+    void GetLocationServerRpc(ulong objectNetId)
+    {
+        string carTeam = playerLeftLocations.ContainsKey(objectNetId) ? "left" : "right";
+        var playerLocations = carTeam.Equals("left") ? playerLeftLocations : playerRightLocations;
+        var matchingStartIndex = carTeam.Equals("left") ? 0 : 3;
+
+        int index = matchingStartIndex + playerLocations[objectNetId];
+
+        // Update position
+        transform.position = spawnPositionList[index];
+        ChangePlayerPositionClientRpc(index);
+
+        // Update color
+        ChangePlayerColorClientRpc(index);
+    }
+
     [ClientRpc]
-    private void changePlayerPositionClientRpc(int index)
+    private void ChangePlayerColorClientRpc(int index)
     {
-        transform.position = spawnPositionList[index % spawnPositionList.Count];
-        PositionNetworkSpawned++;
+        playerCustomisation = GetComponent<PlayerCustomisation>();
+        playerCustomisation.currentColor = (CarColor)(index % 3);
     }
-    public NetworkObject GetNetworkObject()
+
+    [ClientRpc]
+    private void ChangePlayerPositionClientRpc(int index)
     {
-        return NetworkObject;
+        transform.position = spawnPositionList[index];
     }
 }

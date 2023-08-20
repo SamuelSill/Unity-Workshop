@@ -18,7 +18,7 @@ public abstract class PowerUp : NetworkBehaviour
     {
         if (collision.CompareTag("Player"))
         {
-            StartCoroutine(speedEffect(collision));
+            StartCoroutine(ApplyEffect(collision));
         }
     }
     
@@ -36,9 +36,12 @@ public abstract class PowerUp : NetworkBehaviour
     }
     private void RemoveNotification()
     {
-        NotificationMessage.Remove(message);
+        if (NotificationMessage != null)
+        {
+            NotificationMessage.Remove(message);
+        }
     }
-    private IEnumerator speedEffect(Collider2D player)
+    private IEnumerator ApplyEffect(Collider2D player)
     {
         baseDuration = GetDuration();
         message = GetMessage();
@@ -59,7 +62,6 @@ public abstract class PowerUp : NetworkBehaviour
         {
             objectChildren[i].GetComponent<SpriteRenderer>().enabled = false;
         }
-
         yield return new WaitForSeconds(baseDuration);
 
         RemovePowerUpEffectOnPlayer(player);
