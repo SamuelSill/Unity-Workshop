@@ -71,13 +71,11 @@ public class TimerStarter : NetworkBehaviour
     }
     private void adjustTimer() { 
     
-            if (PlayerOptions.PositionNetworkSpawned >= NetworkManegerUI.NUMBER_OF_PLAYERS) //&& delay <= 0)
-            {
-                timer.StartTimer();
-                runClientsClocksClientRpc(Time.time); 
-                timer.onTimerEnd.AddListener(GameEnded);
-            }
-            //delay--;
+        if (PlayerOptions.PositionNetworkSpawned >= NetworkManegerUI.NUMBER_OF_PLAYERS)
+        {
+            timer.StartTimer();
+            runClientsClocksClientRpc(Time.time); 
+        }
 
     }
     [ClientRpc]
@@ -93,11 +91,27 @@ public class TimerStarter : NetworkBehaviour
         left = CompareTexturesByColorPercentage((Texture2D)gameImage.mainTexture, gameTextures[0].GetComponent<PaintCanvas>().Texture);
         right = CompareTexturesByColorPercentage((Texture2D)gameImage.mainTexture, gameTextures[1].GetComponent<PaintCanvas>().Texture);
         PostGameUiActions.UpdateScore(left, right);
+
         //ChangeSceneServerRpc();
         if (IsServer)
         {
+            var hasHostWon = (ServerSession.CurrentTeam == (left > right ? "left" : "right"));
+            var hostTeamScore = ServerSession.CurrentTeam == "left" ? left : right;
+            var enemyTeamScore = ServerSession.CurrentTeam == "left" ? right : left;
+
+            ServerSession.AddNewGame((left != right) && hasHostWon, hostTeamScore);
+
+            foreach (var lobbyPlayer in ServerSession.LobbyPlayers.Keys)
+            {
+                ServerSession.AddNewGame((left != right) && hasHostWon, hostTeamScore, lobbyPlayer);
+            }
+
+            foreach (var enemyPlayer in ServerSession.EnemyLobbyPlayers.Keys)
+            {
+                ServerSession.AddNewGame((left != right) && !hasHostWon, enemyTeamScore, enemyPlayer);
+            }
+
             NetworkManager.SceneManager.LoadScene("PostGame", LoadSceneMode.Single);
-              
         }
     }
     Texture2D Resize(Texture2D texture2D, int targetX, int targetY)

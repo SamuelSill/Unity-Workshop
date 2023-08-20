@@ -38,16 +38,18 @@ public class CarInputHandler : NetworkBehaviour
                     if (mobileControls.drive.Equals("forward"))
                     {
                         inputVector.y = 1;
+                        inputVector.x = mobileControls.direction;
                     }
                     else if (mobileControls.drive.Equals("reverse"))
                     {
                         inputVector.y = -1;
+                        inputVector.x = -mobileControls.direction;
                     }
                     else {
                         inputVector.y = 0;
+                        inputVector.x = mobileControls.direction;
                     }
 
-                    inputVector.x = mobileControls.direction;
                     if (TimerStarter.GameStarted) 
                     {
                         topDownCarController.SetInputVector(inputVector);
@@ -65,6 +67,10 @@ public class CarInputHandler : NetworkBehaviour
         inputVector = Vector2.zero;
         inputVector.x = Input.GetAxis("Horizontal");
         inputVector.y = Input.GetAxis("Vertical");
+        if (inputVector.y < 0)
+        {
+            inputVector.x = -inputVector.x;
+        }
         //Debug.Log("normal user input : "+ inputVector);
         topDownCarController.SetInputVector(inputVector);
     }

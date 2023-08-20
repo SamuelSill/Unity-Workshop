@@ -52,9 +52,9 @@ public class GameMenu : MonoBehaviour
                 profileGamesWon.text = userDetails.games_won.ToString();
                 profileGamesLost.text = userDetails.games_lost.ToString();
                 profileWinLoseRatio.text =
-                    userDetails.games_lost == 0 ?
+                    (userDetails.games_lost + userDetails.games_won) == 0 ?
                     "N/A" :
-                    (userDetails.games_won * 1.0 / userDetails.games_lost).ToString("N2");
+                    (userDetails.games_won * 1.0 / (userDetails.games_won + userDetails.games_lost)).ToString("N2");
                 profileAverageAccuracy.text = 
                     (userDetails.games_won + userDetails.games_lost) == 0 ? 
                     "N/A" :

@@ -43,31 +43,17 @@ public class MobileNetworkManager : NetworkBehaviour
     {
         foreach (string userName in ServerSession.PlayerMobileControls.Keys)
         {
-            //Debug.Log("mobile user names :" + userName);
-            //NetworkManegerUI.AddUserToMobileUsers(userName);
             AddMobileUseServerRpc(userName);
-            
-            
         }
     }
+
     [ServerRpc(RequireOwnership = false)]
     private void AddMobileUseServerRpc(string username)
     {
-        //try
-       // {
-        //    Queue<ServerSession.MobileControls> q = new Queue<ServerSession.MobileControls>();
-        //    object que = RawDeserializeEx(queue, q.GetType());
-        //    q = (Queue<ServerSession.MobileControls>)que;
-       //     ServerSession.PlayerMobileControls.Add(username, q);
-       // }
-        //catch {
-        //    Debug.Log("AddMobileUseServerRpc Deserialization faild ");
-        // } 
-        ServerSession.PlayerMobileControls.Add(username, new Queue<ServerSession.MobileControls>());
         GameObject mobilePlayer = Instantiate(clientPrefab);
         mobilePlayer.GetComponent<NetworkObject>().Spawn();
-
     }
+
     public static object RawDeserializeEx(byte[] arrBytes, Type anytype)
     {
         using (var memStream = new MemoryStream())

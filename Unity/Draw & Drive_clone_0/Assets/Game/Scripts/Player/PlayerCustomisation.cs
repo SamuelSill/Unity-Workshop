@@ -6,8 +6,6 @@ using System;
 
 public class PlayerCustomisation : NetworkBehaviour
 {
-
-
     Dictionary<ulong, Tuple<string, string>> clientSkins;
 
     [SerializeField]

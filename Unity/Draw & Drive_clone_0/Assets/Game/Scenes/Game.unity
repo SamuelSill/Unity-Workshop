@@ -1574,6 +1574,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1903169262}
   - component: {fileID: 1903169261}
+  - component: {fileID: 1903169263}
   m_Layer: 0
   m_Name: preBuild
   m_TagString: Untagged
@@ -1614,6 +1615,18 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1903169263
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1903169260}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b4a175c7172884478758163dde2e546, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1945003899
 GameObject:
   m_ObjectHideFlags: 0
@@ -2143,6 +2156,22 @@ PrefabInstance:
     - target: {fileID: 606099640050785541, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5743776636376613549, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
+      propertyPath: m_Color.a
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5743776636376613549, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
+      propertyPath: m_Color.b
+      value: 0.16301176
+      objectReference: {fileID: 0}
+    - target: {fileID: 5743776636376613549, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
+      propertyPath: m_Color.g
+      value: 0.16301176
+      objectReference: {fileID: 0}
+    - target: {fileID: 5743776636376613549, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
+      propertyPath: m_Color.r
+      value: 0.1792453
       objectReference: {fileID: 0}
     - target: {fileID: 8408751891094374393, guid: 404c2813d1856a048843cad1cb6bdb14, type: 3}
       propertyPath: m_Name

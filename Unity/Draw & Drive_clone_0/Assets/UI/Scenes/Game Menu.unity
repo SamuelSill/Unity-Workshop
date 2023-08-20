@@ -6738,7 +6738,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'W/L RATIO:'
+  m_text: 'WIN RATIO:'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 78ba03c1409cd1547ba24de0ece3592c, type: 2}
   m_sharedMaterial: {fileID: 980391967810861153, guid: 78ba03c1409cd1547ba24de0ece3592c, type: 2}
@@ -9047,8 +9047,6 @@ MonoBehaviour:
   upgradeSpeedButton: {fileID: 306472385}
   upgradeSteeringButton: {fileID: 202560329}
   upgradeThicknessButton: {fileID: 1513733475}
-  skinsPanel: {fileID: 449477253}
-  carsPanel: {fileID: 1186265602}
 --- !u!114 &1544350238
 MonoBehaviour:
   m_ObjectHideFlags: 0

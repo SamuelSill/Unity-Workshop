@@ -38,18 +38,18 @@ public class CarInputHandler : NetworkBehaviour
                     if (mobileControls.drive.Equals("forward"))
                     {
                         inputVector.y = 1;
+                        inputVector.x = mobileControls.direction;
                     }
                     else if (mobileControls.drive.Equals("reverse"))
                     {
                         inputVector.y = -1;
+                        inputVector.x = -mobileControls.direction;
                     }
                     else {
                         inputVector.y = 0;
+                        inputVector.x = mobileControls.direction;
                     }
-                    //float steerValue = mobileControls.gyro.z % 10;
-                    //float minValue = -10;
-                    //float maxValue = 10;
-                    inputVector.x -= (mobileControls.gyro.z / mobileTurnSpeedDecrease);//Mathf.Round(((2 * (steerValue - minValue)) / (maxValue - minValue)) - 1);
+
                     if (TimerStarter.GameStarted) 
                     {
                         topDownCarController.SetInputVector(inputVector);
@@ -67,6 +67,10 @@ public class CarInputHandler : NetworkBehaviour
         inputVector = Vector2.zero;
         inputVector.x = Input.GetAxis("Horizontal");
         inputVector.y = Input.GetAxis("Vertical");
+        if (inputVector.y < 0)
+        {
+            inputVector.x = -inputVector.x;
+        }
         //Debug.Log("normal user input : "+ inputVector);
         topDownCarController.SetInputVector(inputVector);
     }
