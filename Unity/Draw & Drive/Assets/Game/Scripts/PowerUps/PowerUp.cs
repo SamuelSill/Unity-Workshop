@@ -4,7 +4,6 @@ using UnityEngine;
 
 public abstract class PowerUp : NetworkBehaviour
 {
-    public PowerUpGenerator generator;
     private NotificationMessage NotificationMessage;
    
     private float baseDuration;
@@ -63,7 +62,6 @@ public abstract class PowerUp : NetworkBehaviour
         {
             objectChildren[i].GetComponent<SpriteRenderer>().enabled = false;
         }
-        generator.powerUpCounter--;
         yield return new WaitForSeconds(baseDuration);
 
         RemovePowerUpEffectOnPlayer(player);
