@@ -443,7 +443,7 @@ public class ServerSession : MonoBehaviour
     }
 
     public static void Initialize(Action loginSuccessfulCallback, Action loginFailedCallback)
-    {
+    {       
         FileStream file;
 
         if (File.Exists(credentialsFile))

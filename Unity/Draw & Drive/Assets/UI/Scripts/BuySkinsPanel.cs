@@ -10,6 +10,7 @@ public class BuySkinsPanel : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        ShowSkinsToBuy();
     }
 
     // Update is called once per frame
