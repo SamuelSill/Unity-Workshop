@@ -747,6 +747,7 @@ class Game:
         self.__player_sockets: dict[str, WebSocket] = {username: game_host}
         self.__mobile_players: set[str] = set()
         self.__other_game: Optional[Game] = None
+        self.__friends_only: bool = False
 
     def __contains__(self,
                      username: str) -> bool:
@@ -762,7 +763,9 @@ class Game:
                    websocket: WebSocket,
                    mobile: bool) -> bool:
         async with self.__game_lock:
-            if (player_found := player(username, password)) is None:
+            player_found: dict[str, ...] = player(username, password)
+
+            if self.__friends_only and all(username != friend for friend in player_found["friends"]):
                 return False
 
             if username in self.__player_sockets:
@@ -919,6 +922,11 @@ class Game:
     def is_running(self) -> bool:
         return self.__other_game is not None
 
+    async def set_friends_only(self,
+                               activate: bool) -> None:
+        async with self.__game_lock:
+            self.__friends_only = activate
+
 
 games: dict[str, Game] = {}
 searching_game_code: str = ""
@@ -981,8 +989,11 @@ async def create_game(websocket: WebSocket,
 
     try:
         while True:
-            data: dict[str, str] = await websocket.receive_json()
-            if data["id"] == "StartGame":
+            data: dict[str, ...] = await websocket.receive_json()
+            if data["id"] == "FriendsOnly":
+                logger.info(f"{username} has updated friends only setting in game {game_code}")
+                await games[game_code].set_friends_only(data["activate"] == "True")
+            elif data["id"] == "StartGame":
                 logger.info(f"{username} started matching ({game_code})...")
                 # if len(games[game_code]) < 3:
                 #     await websocket.send_json({
@@ -1063,7 +1074,7 @@ async def join_game(websocket: WebSocket,
         return
 
     if len(games[game_code]) == 3:
-        logger.error(f"{username} has tried to join a full game!")
+        logger.error(f"{username} has tried to join a full game: {game_code}")
         await websocket.send_json({
             "id": "ErrorJoining",
             "message": "Game Full!"
@@ -1073,12 +1084,19 @@ async def join_game(websocket: WebSocket,
 
     mobile: bool = mobile.lower() == "true"
 
+    if not await games[game_code].join(username, password, websocket, mobile):
+        logger.error(f"{username} has failed to join the game: {game_code}")
+        await websocket.send_json({
+            "id": "ErrorJoining",
+            "message": "Failed Joining Game!"
+        })
+        await websocket.close()
+        return
+
     logger.info(f"{username} joined the game with the code: {game_code}")
 
     if mobile:
         logger.debug(f"{username} has connected from a mobile device")
-
-    await games[game_code].join(username, password, websocket, mobile)
 
     try:
         mobile_controls_log_count: int = 0

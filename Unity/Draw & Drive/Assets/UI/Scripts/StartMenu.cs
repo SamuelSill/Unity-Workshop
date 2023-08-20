@@ -13,6 +13,8 @@ public class StartMenu : MonoBehaviour
 
     public string gameScene;
 
+    public Toggle friendsOnlyToggle;
+
     public GameObject startMenu;
     public GameObject gameMenu;
 
@@ -41,9 +43,17 @@ public class StartMenu : MonoBehaviour
     {
     }
 
+    public void ToggleChanged()
+    {
+        ServerSession.SetLobbyFriendsOnly(friendsOnlyToggle.isOn);
+    }
+
     void LoadStartMenu()
     {
         startButton.SetActive(ServerSession.IsLobbyHost);
+        friendsOnlyToggle.gameObject.SetActive(ServerSession.IsLobbyHost);
+        friendsOnlyToggle.isOn = false;
+
         startMenu.SetActive(true);
         gameMenu.SetActive(false);
         matchingText.SetActive(false);

@@ -858,6 +858,11 @@ public class ServerSession : MonoBehaviour
         }
     }
 
+    public static void SetLobbyFriendsOnly(bool isFriendsOnly)
+    {
+        socket?.Send($"{{\"id\": \"FriendsOnly\", \"activate\": \"{isFriendsOnly}\"}}");
+    }
+
     public static void CreateGame(Action gameCreated, 
                                   Action<UserGameStats> userJoined,
                                   Action<string> userLeft,
