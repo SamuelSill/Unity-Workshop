@@ -56,7 +56,8 @@ public class ServerSession : MonoBehaviour
     public static int CurrentCarSpeed => CurrentGameCar.speed + CurrentCar.upgrades.speed;
     public static int CurrentCarThickness => CurrentGameCar.thickness + CurrentCar.upgrades.thickness;
     public static int CurrentCarSteering => CurrentGameCar.steering + CurrentCar.upgrades.steering;
-    public static bool IsHost { get; private set; }
+    public static bool IsUnityHost { get; private set; }
+    public static bool IsLobbyHost { get; private set; }
     public static string HostIp => hostIp;
     public static Texture2D CurrentGamePainting { get; private set; }
     public static string CurrentTeam => currentTeam;
@@ -790,18 +791,11 @@ public class ServerSession : MonoBehaviour
     }
 
     [Serializable]
-    public class GyroData
-    {
-        public float x;
-        public float y;
-        public float z;
-    }
-    [Serializable]
     public class MobileControls
     {
         //mobile data: {"id":"MobileControls","gyro":{"x":"0.00","y":"0.00","z":"0.00"},"drive":"stop","username":"maayan"}
         public string id;
-        public GyroData gyro;
+        public float direction; // -1 to 1
         public string drive;
         public string username;
     }
@@ -827,7 +821,7 @@ public class ServerSession : MonoBehaviour
 
         currentTeam = gameStartedMessage.team;
         hostIp = gameStartedMessage.host_ip;
-        IsHost = gameStartedMessage.is_host;
+        IsUnityHost = gameStartedMessage.is_host;
         EnemyLobbyPlayers = new Dictionary<string, UserGameStats>();
         foreach (var enemyPlayer in gameStartedMessage.enemy_lobby)
         {
@@ -842,6 +836,7 @@ public class ServerSession : MonoBehaviour
     {
         Task.Run(() =>
         {
+            IsLobbyHost = true;
             LobbyPlayers = new Dictionary<string, UserGameStats>();
             PlayerMobileControls = new Dictionary<string, Queue<MobileControls>>();
             socket = new WebSocket($"{serverWSURL}/games/ws/{_loggedUsername}/{_loggedPassword}");
@@ -932,6 +927,7 @@ public class ServerSession : MonoBehaviour
     {
         Task.Run(() =>
         {
+            IsLobbyHost = false;
             LobbyCode = gameCode;
             LobbyPlayers = new Dictionary<string, UserGameStats>();
             socket = new WebSocket($"{serverWSURL}/games/ws/{gameCode}/{_loggedUsername}/{_loggedPassword}/false");

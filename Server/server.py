@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import gridfs
 from pydantic import BaseModel
+import logging
+import logging.config
 
 import math
 import numpy as np
@@ -19,6 +21,13 @@ from skimage.segmentation import slic
 from skimage.color import label2rgb
 import matplotlib.image as mpimg
 from PIL import Image
+
+# region Logging
+
+logging.config.fileConfig("logging.conf")
+logger: logging.Logger = logging.getLogger()
+
+# endregion
 
 # region Resources
 
@@ -707,14 +716,29 @@ def add_achievement(username: str,
 
 
 class Game:
+    class LoggingLock:
+        def __init__(self):
+            from asyncio import Lock
+            self.__lock: Lock = Lock()
+            self.print = True
+
+        async def __aenter__(self):
+            if self.print:
+                logger.debug("Acquiring lock")
+            await self.__lock.acquire()
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            if self.print:
+                logger.debug("Releasing lock")
+            self.__lock.release()
+
     def __init__(self,
                  username: str,
                  game_host: WebSocket):
         from typing import Optional
-        from asyncio import Lock
 
         self.__host: str = username
-        self.__game_lock: Lock = Lock()
+        self.__game_lock: Game.LoggingLock = Game.LoggingLock()
         self.__unity_host: Optional[WebSocket] = None
         self.__player_sockets: dict[str, WebSocket] = {username: game_host}
         self.__other_game: Optional[Game] = None
@@ -732,8 +756,7 @@ class Game:
                    password: str,
                    websocket: WebSocket,
                    mobile: bool) -> bool:
-        await self.__game_lock.acquire()
-        try:
+        async with self.__game_lock:
             if (player_found := player(username, password)) is None:
                 return False
 
@@ -764,16 +787,13 @@ class Game:
                     if player_username != username
                 ]
             })
-        finally:
-            self.__game_lock.release()
 
-        return True
+            return True
 
     async def leave(self,
                     username: str,
                     password: str) -> bool:
-        await self.__game_lock.acquire()
-        try:
+        async with self.__game_lock:
             if player(username, password) is None:
                 return False
 
@@ -788,18 +808,15 @@ class Game:
                 })
                 for player_socket in self.__player_sockets.values()
             ])
-        finally:
-            self.__game_lock.release()
 
-        return True
+            return True
 
     async def start(self,
                     other_game: "Game",
                     host_ip: str) -> None:
         from random import choice
-        await self.__game_lock.acquire()
 
-        try:
+        async with self.__game_lock:
             players: dict[str, WebSocket] = {**self.__player_sockets, **other_game.__player_sockets}
 
             random_player_painting: list[int] = list(grid_fs.get(choice([
@@ -835,23 +852,17 @@ class Game:
             other_game.__other_game = self
 
             self.__other_game.__unity_host = self.__unity_host = self.__player_sockets[self.__host]
-        finally:
-            self.__game_lock.release()
 
     async def stop(self) -> None:
-        await self.__game_lock.acquire()
-        try:
+        async with self.__game_lock:
             if self.is_running:
                 self.__other_game.__other_game = None
                 self.__other_game.__unity_host = None
                 self.__other_game = None
                 self.__unity_host = None
-        finally:
-            self.__game_lock.release()
 
     async def close(self) -> None:
-        await self.__game_lock.acquire()
-        try:
+        async with self.__game_lock:
             await asyncio.gather(*[
                 player_socket.send_json({"id": "GameClosed"})
                 for player_socket in self.__player_sockets.values()
@@ -863,23 +874,22 @@ class Game:
             ])
 
             self.__player_sockets = {}
-        finally:
-            self.__game_lock.release()
 
     def __len__(self) -> int:
         return len(self.__player_sockets)
 
     async def send_mobile_controls(self,
                                    mobile_controls: dict[str, ...]) -> None:
-        await self.__game_lock.acquire()
+        self.__game_lock.print = False
         try:
-            if (
-                self.__unity_host.application_state == WebSocketState.CONNECTED and
-                self.__unity_host.client_state == WebSocketState.CONNECTED
-            ):
-                await self.__unity_host.send_json(mobile_controls)
+            async with self.__game_lock:
+                if (
+                    self.__unity_host.application_state == WebSocketState.CONNECTED and
+                    self.__unity_host.client_state == WebSocketState.CONNECTED
+                ):
+                    await self.__unity_host.send_json(mobile_controls)
         finally:
-            self.__game_lock.release()
+            self.__game_lock.print = True
 
     @property
     def is_running(self) -> bool:
@@ -901,8 +911,12 @@ async def create_game(websocket: WebSocket,
     global searching_game_code
     global searching_game_host
 
+    logger.debug(f"Connection Opened (Create): {username}")
+
     await websocket.accept()
+
     if (player_found := player(username, password)) is None:
+        logger.error(f"{username}:{password} are not valid credentials!")
         await websocket.send_json({
             "id": "ErrorCreating",
             "message": "Player Not Found!"
@@ -912,6 +926,7 @@ async def create_game(websocket: WebSocket,
         return
 
     if any(username in game for game in games.values()):
+        logger.error(f"{username} has tried to create a game, yet they are already in one!")
         await websocket.send_json({
             "id": "ErrorCreating",
             "message": "Player Already in a Game!"
@@ -932,6 +947,8 @@ async def create_game(websocket: WebSocket,
     while (game_code := ''.join(choice(ascii_uppercase) for _ in range(4))) in games:
         pass
 
+    logger.info(f"{username} created a new game with code: {game_code}")
+
     games[game_code] = Game(username, websocket)
     await websocket.send_json({
         "id": "GameCreated",
@@ -942,24 +959,30 @@ async def create_game(websocket: WebSocket,
         while True:
             data: dict[str, str] = await websocket.receive_json()
             if data["id"] == "StartGame":
+                logger.info(f"{username} started matching ({game_code})...")
                 # if len(games[game_code]) < 3:
                 #     await websocket.send_json({
                 #          "id": "ErrorStarting",
                 #          "message": "Not Enough Players!"
                 #      })
                 if searching_game_code == "":
+                    logger.info(f"{username}'s game ({game_code}) is waiting...")
                     searching_game_code = game_code
                     searching_game_host = data["ip"]
                 elif searching_game_code != game_code:
+                    logger.info(f"{username}'s game ({game_code}) has matched with searching game: {searching_game_code}...")
                     await games[searching_game_code].start(games[game_code], searching_game_host)
                     searching_game_code = ""
                     searching_game_host = ""
             if data["id"] == "FinishGame":
+                logger.info(f"{username}'s game has finished ({game_code})")
                 await games[game_code].stop()
     except WebSocketDisconnect:
+        logger.info(f"{username} has disconnected, game {game_code} is closing...")
         pass
 
     if searching_game_code == game_code:
+        logger.debug(f"{game_code} was waiting for other games before closing...")
         searching_game_code = ""
         searching_game_host = ""
 
@@ -974,8 +997,12 @@ async def join_game(websocket: WebSocket,
                     username: str,
                     password: str,
                     mobile: str):
+    logger.debug(f"Connection Opened (Join): {username}")
+
     await websocket.accept()
+
     if (player_found := player(username, password)) is None:
+        logger.error(f"{username}:{password} are not valid credentials!")
         await websocket.send_json({
             "id": "ErrorJoining",
             "message": "Player Not Found!"
@@ -984,6 +1011,7 @@ async def join_game(websocket: WebSocket,
         return
 
     if any(username in game for game in games.values()):
+        logger.error(f"{username} has tried to join a game, yet they are already in one!")
         await websocket.send_json({
             "id": "ErrorJoining",
             "message": "Player Already in a Game!"
@@ -1002,6 +1030,7 @@ async def join_game(websocket: WebSocket,
         #return
 
     if game_code not in games:
+        logger.error(f"{username} has tried to join a game that does not exist: {game_code}")
         await websocket.send_json({
             "id": "ErrorJoining",
             "message": "Game Not Found!"
@@ -1010,6 +1039,7 @@ async def join_game(websocket: WebSocket,
         return
 
     if len(games[game_code]) == 3:
+        logger.error(f"{username} has tried to join a full game!")
         await websocket.send_json({
             "id": "ErrorJoining",
             "message": "Game Full!"
@@ -1017,22 +1047,35 @@ async def join_game(websocket: WebSocket,
         await websocket.close()
         return
 
-    mobile = mobile.lower() == "true"
+    mobile: bool = mobile.lower() == "true"
+
+    logger.info(f"{username} joined the game with the code: {game_code}")
+
+    if mobile:
+        logger.debug(f"{username} has connected from a mobile device")
 
     await games[game_code].join(username, password, websocket, mobile)
 
     try:
+        mobile_controls_log_count: int = 0
         while (websocket.application_state == WebSocketState.CONNECTED and
                websocket.client_state == WebSocketState.CONNECTED):
             mobile_controls: dict[str, ...] = await websocket.receive_json()
             mobile_controls["username"] = username
             if mobile and game_code in games and games[game_code].is_running:
+                if mobile_controls_log_count % 20 == 0:
+                    logger.debug(f"{username}'s Mobile Controls: {mobile_controls}")
+                mobile_controls_log_count += 1
                 await games[game_code].send_mobile_controls(mobile_controls)
     except WebSocketDisconnect:
+        logger.info(f"{username} has disconnected from game {game_code}")
         pass
 
     if game_code in games:
+        logger.info(f"{username} is leaving game {game_code}")
         await games[game_code].leave(username, password)
+    else:
+        logger.warning(f"{username} is leaving nonexistent game {game_code}")
 
 # endregion
 

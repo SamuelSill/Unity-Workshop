@@ -46,10 +46,8 @@ public class CarInputHandler : NetworkBehaviour
                     else {
                         inputVector.y = 0;
                     }
-                    //float steerValue = mobileControls.gyro.z % 10;
-                    //float minValue = -10;
-                    //float maxValue = 10;
-                    inputVector.x -= (mobileControls.gyro.z / mobileTurnSpeedDecrease);//Mathf.Round(((2 * (steerValue - minValue)) / (maxValue - minValue)) - 1);
+
+                    inputVector.x = mobileControls.direction;
                     if (TimerStarter.GameStarted) 
                     {
                         topDownCarController.SetInputVector(inputVector);

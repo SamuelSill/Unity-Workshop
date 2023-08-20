@@ -57,7 +57,7 @@ public class NetworkManegerUI : NetworkBehaviour
         var unityTransport = NetworkManager.Singleton.GetComponent<UnityTransport>();
         unityTransport.SetConnectionData(ServerSession.HostIp, unityTransport.ConnectionData.Port);
         
-        if (ServerSession.IsHost)
+        if (ServerSession.IsUnityHost)
         {
             NetworkManager.Singleton.StartHost();
 

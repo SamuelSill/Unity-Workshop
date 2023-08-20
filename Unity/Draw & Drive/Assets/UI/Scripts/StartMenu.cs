@@ -27,8 +27,6 @@ public class StartMenu : MonoBehaviour
     public GameObject friendBox1;
     public GameObject friendBox2;
 
-    bool isHost;
-
     // Start is called before the first frame update
     public void Start()
     {
@@ -45,9 +43,7 @@ public class StartMenu : MonoBehaviour
 
     void LoadStartMenu()
     {
-        isHost = (ServerSession.LobbyPlayers.Count == 0);
-
-        startButton.SetActive(isHost);
+        startButton.SetActive(ServerSession.IsLobbyHost);
         startMenu.SetActive(true);
         gameMenu.SetActive(false);
         matchingText.SetActive(false);
@@ -130,7 +126,7 @@ public class StartMenu : MonoBehaviour
 
     public void StartGame()
     {
-        if (isHost)
+        if (ServerSession.IsLobbyHost)
         {
             matchingText.SetActive(true);
             ServerSession.StartGame();

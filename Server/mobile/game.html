@@ -85,95 +85,47 @@
     left: 70%;
     margin-top: -50px;
     margin-left: -50px;"> -->
-
-
-
-<h1 style="color:white;">Gyroscope Data</h1>
-
-  <div id="gyro-data" style="color:white;">
-    <p>Gyroscope data:</p>
-    <ul>
-      <li>Rotation rate alpha: <span id="alpha-value"></span></li>
-      <li>Rotation rate beta: <span id="beta-value"></span></li>
-      <li>Rotation rate gamma: <span id="gamma-value"></span></li>
-    </ul>
-  </div>
-    <div id="pedal_data" style="color:white;"></div>
-    <div id="reverse_data" style="color:white;"></div>
  
 
   <script>
+
     const socker_api_url = "wss://unity-https-drawndrive.com";
     var pedal_pressed = false;
     var reverse_pressed = false;
-    const intervalSeconds =100; // 5 seconds in milliseconds
+    const intervalSeconds = 100;
+    let orientation = 0;
     
     //send data to socket
     // message to socket is jason with 3 fields:
     // id ="mobileControl"
-    // gyro = {x,y,z}
+    // direction = left/right/netural
     // drive = forward/reverse/stop
-    
 
-    //--------------------Gyro---------------------------------------------------------
-    function startGyroscope() {
-      if ('Gyroscope' in window) {
-        // Create a new gyroscope sensor instance
-        const gyroscope = new Gyroscope();
-        gyroscope.frequency = 100;
-        // Handle gyroscope reading changes
-        gyroscope.addEventListener('reading', handleGyroscopeReading);
+    function handleOrientation(event) {
+        const max_orientation = 15.0;
+        if (event.beta < -15) {
+            orientation = -1.0;
+        }
+        else if (event.beta > 15) {
+            orientation = 1.0;
+        }
+        else {
+            orientation = event.beta / 15;
+        }
 
-        // Start the gyroscope sensor
-        gyroscope.start();
-      } else {
-        alert('Gyroscope is not supported on this device');
-      }
+        orientation = orientation.toFixed(2);
     }
 
-    function handleGyroscopeReading(event) {
-      // Get the gyroscope readings
-      const { x, y, z } = event.target;
-      
-      // Display the gyroscope data on the webpage
-      document.getElementById('alpha-value').textContent = x.toFixed(2);
-      document.getElementById('beta-value').textContent = y.toFixed(2);
-      document.getElementById('gamma-value').textContent = z.toFixed(2);
-    }
-    // Request gyroscope permission and start using gyroscope data
-    function requestGyroscopePermission() {
-      navigator.permissions.query({ name: 'gyroscope' })
-        .then((result) => {
-          if (result.state === 'granted') {
-            startGyroscope();
-          } else if (result.state === 'prompt') {
-            result.onchange = () => {
-              if (result.state === 'granted') {
-                startGyroscope();
-              }
-            };
-          } else {
-            alert('Gyroscope access denied');
-          }
-        })
-        .catch((error) => {
-          console.error('Error requesting gyroscope access:', error);
-        });
-    }
-
-    // Call the permission request function when the page loads
-    window.addEventListener('load', requestGyroscopePermission);
+    window.addEventListener("deviceorientation", handleOrientation);
     //---------------------------------------------------------------------------------
 
     //--------------------Pedal---------------------------------------------------------
     function pedal_press() {
         event.preventDefault();
-        document.getElementById("pedal_data").innerHTML = "Drive";//Pedal pressed
         pedal_pressed = true;
     }
     function pedal_release() {
         event.preventDefault();
-        document.getElementById("pedal_data").innerHTML = "Stop"; //Pedal released
         pedal_pressed = false;
     }
     document.getElementById("pedal").addEventListener("touchstart", pedal_press);
@@ -182,12 +134,10 @@
     //--------------------Reverse---------------------------------------------------------
     function reverse_press() {
         event.preventDefault();
-        document.getElementById("reverse_data").innerHTML = "Mode: Reverse"; //Reverse pressed
         reverse_pressed = true;
     }
     function reverse_release() {
         event.preventDefault();
-        document.getElementById("reverse_data").innerHTML = "Mode: Forward";//Reverse released
         reverse_pressed = false;
     }
     document.getElementById("reverse").addEventListener("touchstart", reverse_press);
@@ -208,9 +158,6 @@ const api_gamecode_request = (gamePin,username,password) =>{
 
   //--------------------Send data to socket-------------------------------------------
     function send_data_to_socket(){
-      var gyro_x = document.getElementById("alpha-value").textContent;
-      var gyro_y = document.getElementById("beta-value").textContent;
-      var gyro_z = document.getElementById("gamma-value").textContent;
       let drive;
       if (reverse_pressed === pedal_pressed) {
           drive = 'stop';
@@ -219,7 +166,7 @@ const api_gamecode_request = (gamePin,username,password) =>{
       } else {
           drive = 'reverse';
       }
-      ws.send(JSON.stringify({id:"MobileControls",gyro:{x:gyro_x,y:gyro_y,z:gyro_z},drive:drive}));
+      ws.send(JSON.stringify({id:"MobileControls", direction: orientation, drive: drive}));
     }
   //---------------------------------------------------------------------------------
     
