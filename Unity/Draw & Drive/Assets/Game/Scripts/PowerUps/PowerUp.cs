@@ -4,6 +4,7 @@ using UnityEngine;
 
 public abstract class PowerUp : NetworkBehaviour
 {
+    public PowerUpGenerator generator;
     private NotificationMessage NotificationMessage;
    
     private float baseDuration;
@@ -18,7 +19,7 @@ public abstract class PowerUp : NetworkBehaviour
     {
         if (collision.CompareTag("Player"))
         {
-            StartCoroutine(speedEffect(collision));
+            StartCoroutine(ApplyEffect(collision));
         }
     }
     
@@ -41,7 +42,7 @@ public abstract class PowerUp : NetworkBehaviour
             NotificationMessage.Remove(message);
         }
     }
-    private IEnumerator speedEffect(Collider2D player)
+    private IEnumerator ApplyEffect(Collider2D player)
     {
         baseDuration = GetDuration();
         message = GetMessage();
@@ -62,7 +63,7 @@ public abstract class PowerUp : NetworkBehaviour
         {
             objectChildren[i].GetComponent<SpriteRenderer>().enabled = false;
         }
-
+        generator.powerUpCounter--;
         yield return new WaitForSeconds(baseDuration);
 
         RemovePowerUpEffectOnPlayer(player);

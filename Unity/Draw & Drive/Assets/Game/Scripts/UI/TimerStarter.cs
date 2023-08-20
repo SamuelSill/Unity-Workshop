@@ -30,7 +30,7 @@ public class TimerStarter : NetworkBehaviour
         {
             float timePassed = Time.time - startTime;
             // Check if the desired duration has passed
-            if (timePassed < duration || PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS)
+            if (timePassed < duration)
             {
                 if (IsServer)
                 {
@@ -70,13 +70,8 @@ public class TimerStarter : NetworkBehaviour
 
     }
     private void adjustTimer() { 
-    
-        if (PlayerOptions.PositionNetworkSpawned >= NetworkManegerUI.NUMBER_OF_PLAYERS)
-        {
-            timer.StartTimer();
-            runClientsClocksClientRpc(Time.time); 
-        }
-
+        timer.StartTimer();
+        runClientsClocksClientRpc(Time.time);
     }
     [ClientRpc]
     private void runClientsClocksClientRpc(float startTime) {

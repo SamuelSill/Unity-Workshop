@@ -130,14 +130,18 @@ def post_register(registration_form: RegistrationForm,
         "description": registration_form.description,
         "achievements": [],
         "friends": [],
-        "money": 1000,
+        "money": 500,
         "sum_accuracy": 0,
         "games_won": 0,
         "games_lost": 0,
         "cars": [
             {
                 "id": "auto",
-                "upgrades": {},
+                "upgrades": {
+                    "speed": 0,
+                    "steering": 0,
+                    "thickness": 0
+                },
                 "skins": ["regular"],
                 "selected_skin": 0
             }
@@ -852,7 +856,8 @@ class Game:
                                 }))["cars"][enemy_player["selected_car"]],
                             "mobile": enemy_username in other_game.__mobile_players
                         }
-                        for enemy_username in other_game
+                        for enemy_username in players
+                        if (enemy_username in self) != (username in self)
                     ]
                 })
                 for username, player_socket in players.items()

@@ -6,7 +6,9 @@ using System;
 
 public class PlayerCustomisation : NetworkBehaviour
 {
-    Dictionary<ulong, Tuple<string, string>> clientSkins;
+    static Dictionary<ulong, Tuple<string, string, int>> clientCarStats;
+
+    private int myThickness;
 
     [SerializeField]
     private int skinChoice;
@@ -32,41 +34,43 @@ public class PlayerCustomisation : NetworkBehaviour
 
     private void AdjustSize()
     {
-        BrushSize = (int)(ServerSession.CurrentCarThickness * transform.localScale.x);
+        BrushSize = (int)(myThickness * transform.localScale.x);
     }
 
     public override void OnNetworkSpawn()
     {
-        if (IsServer)
+        if (IsServer && !gameObject.name.Contains("Mobile") && IsOwner)
         {
-            clientSkins = new Dictionary<ulong, Tuple<string, string>>();
+            clientCarStats = new();
         }
 
-        //Debug.Log("Network Spawn: " + IsOwner.ToString());
-        AdjustSize();
         if (IsOwner)
         {
             if (gameObject.name.Contains("Mobile"))
             {
-                var username = gameObject.GetComponent<PlayerOptions>().UserName;
-                var player =
-                    ServerSession.LobbyPlayers.ContainsKey(username) ?
-                    ServerSession.LobbyPlayers[username] :
-                    ServerSession.EnemyLobbyPlayers[username];
-                InformServerOfCarSkinServerRpc(
+                var player = ServerSession.GetUser(gameObject.GetComponent<PlayerOptions>().UserName);
+                var matchingPlayerCar = ServerSession.GameCars.Find(car => car.id.Equals(player.selected_car.id));
+
+                InformServerOfCarStatsServerRpc(
                     player.selected_car.id,
                     player.selected_car.skins[player.selected_car.selected_skin],
+                    matchingPlayerCar.thickness + player.selected_car.upgrades.thickness,
                     NetworkObjectId
                 );
             }
             else
             {
-                InformServerOfCarSkinServerRpc(ServerSession.CurrentCar.id, ServerSession.CurrentSkin, NetworkObjectId);
+                InformServerOfCarStatsServerRpc(
+                    ServerSession.CurrentCar.id, 
+                    ServerSession.CurrentSkin, 
+                    ServerSession.CurrentCarThickness,
+                    NetworkObjectId
+                );
             }
         }
         else
         {
-            GetCarSkinOfObjectServerRpc(NetworkObjectId);
+            GetCarStatsServerRpc(NetworkObjectId);
         }
 
         playerModules = transform.Find("PlayerModule").GetComponentsInChildren<SpriteRenderer>();
@@ -74,24 +78,33 @@ public class PlayerCustomisation : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void InformServerOfCarSkinServerRpc(string carID, string skinID, ulong networkId)
+    private void InformServerOfCarStatsServerRpc(
+        string carID, 
+        string skinID, 
+        int thickness,
+        ulong networkId
+    )
     {
-        clientSkins.Add(networkId, Tuple.Create(carID, skinID));
+        clientCarStats.Add(networkId, Tuple.Create(carID, skinID, thickness));
         //Debug.Log("ServerRPC: " + carID + " " + skinID);
-        UpdateSkinsClientRpc(carID, skinID);
+        UpdateSkinsClientRpc(carID, skinID, thickness);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void GetCarSkinOfObjectServerRpc(ulong networkId)
+    private void GetCarStatsServerRpc(ulong networkId)
     {
-        if (clientSkins.ContainsKey(networkId))
+        if (clientCarStats.ContainsKey(networkId))
         {
-            UpdateSkinsClientRpc(clientSkins[networkId].Item1, clientSkins[networkId].Item2);
+            UpdateSkinsClientRpc(
+                clientCarStats[networkId].Item1, 
+                clientCarStats[networkId].Item2,
+                clientCarStats[networkId].Item3
+            );
         }
     }
 
     [ClientRpc]
-    private void UpdateSkinsClientRpc(string carID, string skinID, ClientRpcParams clientRpcParams = default)
+    private void UpdateSkinsClientRpc(string carID, string skinID, int thickness)
     {
         Transform playerModule = transform.Find("PlayerModule");
         //Debug.Log("Client RPC called for instance " + playerModule.GetInstanceID() + " with " + carID + " " + skinID);
@@ -101,6 +114,10 @@ public class PlayerCustomisation : NetworkBehaviour
         CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.blue));
         CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.green));
         CreateChildObject(playerModule.transform, CarSprites.GetCarSprite(carID, skinID, CarColor.red));
+
+        myThickness = thickness;
+
+        AdjustSize();
     }
 
     private void CreateChildObject(Transform parent, Sprite sprite)

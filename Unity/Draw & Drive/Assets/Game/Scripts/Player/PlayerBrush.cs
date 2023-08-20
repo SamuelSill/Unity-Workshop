@@ -123,7 +123,7 @@ public class PlayerBrush : NetworkBehaviour
     }
     private void FixedUpdate()
     {
-        if (PlayerOptions.PositionNetworkSpawned < NetworkManegerUI.NUMBER_OF_PLAYERS || !TimerStarter.GameStarted) {
+        if (!TimerStarter.GameStarted) {
             return;
         }
         //if (gameObject.name.Contains("Mobile"))

@@ -97,6 +97,17 @@ public class ServerSession : MonoBehaviour
         }
     }
 
+    public static UserGameStats GetUser(string username)
+    {
+        return LobbyPlayers.ContainsKey(username) ? LobbyPlayers[username] : EnemyLobbyPlayers[username];
+    }
+
+    public static string UserTeam(string username)
+    {
+        string oppositeTeam = CurrentTeam.Equals("left") ? "right" : "left";
+        return LobbyPlayers.ContainsKey(username) ? CurrentTeam : oppositeTeam;
+    }
+
     public static void CreateUser(
         string username, 
         string password, 

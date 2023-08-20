@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 
-public class PowerUpGenorator : NetworkBehaviour
+public class PowerUpGenerator : NetworkBehaviour
 {
+    public int maxPowerUps = 5;
+
     [SerializeField]
     private List<GameObject> powerUpsList;
     [SerializeField]
@@ -13,9 +15,11 @@ public class PowerUpGenorator : NetworkBehaviour
     private float wait_time;
     private bool newWait;
     private Bounds textureBounds;
+    public int powerUpCounter;
 
     public override void OnNetworkSpawn()
     {
+        powerUpCounter = 0;
         textureBounds = GetComponent<Renderer>().bounds;
         newWait = true;
     }
@@ -46,15 +50,20 @@ public class PowerUpGenorator : NetworkBehaviour
 
     }
     private void spawnPowerUpObject() {
-        if(!IsServer)
-        { return; }
-        int powerUpIndex = Random.Range(0, powerUpsList.Count);
-        GameObject chosenPowerUp = powerUpsList[powerUpIndex];
-        Vector3 randomPosition = getRandomPossition();
-        GameObject go = Instantiate(chosenPowerUp, randomPosition, Quaternion.identity);
-        go.GetComponent<NetworkObject>().Spawn();
-        
+        if (powerUpCounter < maxPowerUps)
+        {
+            if (!IsServer)
+            { return; }
+            int powerUpIndex = Random.Range(0, powerUpsList.Count);
+            GameObject chosenPowerUp = powerUpsList[powerUpIndex];
+            Vector3 randomPosition = getRandomPossition();
+            GameObject go = Instantiate(chosenPowerUp, randomPosition, Quaternion.identity);
+            powerUpCounter++;
+            go.GetComponent<PowerUp>().generator = this;
+            go.GetComponent<NetworkObject>().Spawn();
+        }
     }
+
     private Vector3 getRandomPossition() {
         Vector3 powerUpPosition = new Vector3(
                 Random.Range(textureBounds.min.x + boundsPadding, textureBounds.max.x - boundsPadding),
