@@ -788,6 +788,7 @@ public class ServerSession : MonoBehaviour
     {
         public string username;
         public PlayerCar selected_car;
+        public bool mobile;
     }
 
     [Serializable]
@@ -826,6 +827,24 @@ public class ServerSession : MonoBehaviour
         {
             EnemyLobbyPlayers.Add(enemyPlayer.username, enemyPlayer);
         }
+
+        PlayerMobileControls = new Dictionary<string, Queue<MobileControls>>();
+
+        foreach (var enemyPlayer in LobbyPlayers.Values)
+        {
+            if (enemyPlayer.mobile)
+            {
+                PlayerMobileControls.Add(enemyPlayer.username, new Queue<MobileControls>());
+            }
+        }
+
+        foreach (var enemyPlayer in EnemyLobbyPlayers.Values)
+        {
+            if (enemyPlayer.mobile)
+            {
+                PlayerMobileControls.Add(enemyPlayer.username, new Queue<MobileControls>());
+            }
+        }
     }
 
     public static void CreateGame(Action gameCreated, 
@@ -837,7 +856,6 @@ public class ServerSession : MonoBehaviour
         {
             IsLobbyHost = true;
             LobbyPlayers = new Dictionary<string, UserGameStats>();
-            PlayerMobileControls = new Dictionary<string, Queue<MobileControls>>();
             socket = new WebSocket($"{serverWSURL}/games/ws/{_loggedUsername}/{_loggedPassword}");
             socket.OnMessage += (sender, e) =>
             {
@@ -845,15 +863,13 @@ public class ServerSession : MonoBehaviour
                 if (message.id == "UserJoined")
                 {
                     UserJoinedMessage userJoinedMessage = JsonUtility.FromJson<UserJoinedMessage>(e.Data);
-                    UserGameStats userStats = new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car };
+                    UserGameStats userStats = new UserGameStats {
+                        username = userJoinedMessage.username,
+                        selected_car = userJoinedMessage.selected_car,
+                        mobile = userJoinedMessage.mobile
+                    };
                     LobbyPlayers.Add(userStats.username, userStats);
                     PerformAction(() => userJoined.Invoke(userStats));
-
-                    if (userJoinedMessage.mobile)
-                    {
-                        //Debug.Log("added mobile user to queue: " + userJoinedMessage.username);
-                        PlayerMobileControls.Add(userJoinedMessage.username, new Queue<MobileControls>());
-                    }
                 }
                 else if (message.id == "UserLeft")
                 {
@@ -889,7 +905,11 @@ public class ServerSession : MonoBehaviour
                     MobileControls mobileControls = JsonUtility.FromJson<MobileControls>(e.Data);
                     //Debug.Log("mobile data: " + e.Data);
                     //Debug.Log("mobile controls: " + mobileControls.direction + ", " + mobileControls.drive + ", " + mobileControls.username);
-                    PlayerMobileControls[mobileControls.username].Enqueue(mobileControls);
+
+                    if (PlayerMobileControls != null && PlayerMobileControls.ContainsKey(mobileControls.username))
+                    {
+                        PlayerMobileControls[mobileControls.username].Enqueue(mobileControls);
+                    }
                 }
             };
 
@@ -939,7 +959,12 @@ public class ServerSession : MonoBehaviour
                     JoinMessage joinMessage = JsonUtility.FromJson<JoinMessage>(e.Data);
                     foreach (var player in joinMessage.players)
                     {
-                        LobbyPlayers.Add(player.username, new UserGameStats { username = player.username, selected_car = player.selected_car});
+                        LobbyPlayers.Add(player.username, 
+                            new UserGameStats { 
+                                username = player.username, 
+                                selected_car = player.selected_car,
+                                mobile = player.mobile
+                            });
                     }
 
                     PerformAction(gameJoined);
@@ -947,9 +972,13 @@ public class ServerSession : MonoBehaviour
                 else if (message.id == "UserJoined")
                 {
                     UserJoinedMessage userJoinedMessage = JsonUtility.FromJson<UserJoinedMessage>(e.Data);
-                    UserGameStats userStats = new() { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car };
+                    UserGameStats userStats = new() { 
+                        username = userJoinedMessage.username, 
+                        selected_car = userJoinedMessage.selected_car,
+                        mobile = userJoinedMessage.mobile
+                    };
                     LobbyPlayers.Add(userStats.username, userStats);
-                    PerformAction(() => userJoined.Invoke(new UserGameStats { username = userJoinedMessage.username, selected_car = userJoinedMessage.selected_car }));
+                    PerformAction(() => userJoined.Invoke(userStats));
                 }
                 else if (message.id == "UserLeft")
                 {

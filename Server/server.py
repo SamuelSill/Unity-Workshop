@@ -741,6 +741,7 @@ class Game:
         self.__game_lock: Game.LoggingLock = Game.LoggingLock()
         self.__unity_host: Optional[WebSocket] = None
         self.__player_sockets: dict[str, WebSocket] = {username: game_host}
+        self.__mobile_players: set[str] = set()
         self.__other_game: Optional[Game] = None
 
     def __contains__(self,
@@ -773,20 +774,24 @@ class Game:
                 for player_socket in self.__player_sockets.values()
             ])
 
-            self.__player_sockets[username] = websocket
             await websocket.send_json({
                 "id": "GameJoined",
                 "players": [
                     {
                         "username": player_username,
-                        "selected_car": players_collection.find_one({
+                        "selected_car": (other_player := players_collection.find_one({
                             "username": player_username
-                        })["cars"][player_found["selected_car"]]
+                        }))["cars"][other_player["selected_car"]],
+                        "mobile": player_username in self.__mobile_players
                     }
                     for player_username in self.__player_sockets
-                    if player_username != username
                 ]
             })
+
+            self.__player_sockets[username] = websocket
+
+            if mobile:
+                self.__mobile_players.add(username)
 
             return True
 
@@ -801,6 +806,10 @@ class Game:
                 return False
 
             self.__player_sockets.pop(username)
+
+            if username in self.__mobile_players:
+                self.__mobile_players.remove(username)
+
             await asyncio.gather(*[
                 player_socket.send_json({
                     "id": "UserLeft",
@@ -840,7 +849,8 @@ class Game:
                             "selected_car":
                                 (enemy_player := players_collection.find_one({
                                     "username": enemy_username
-                                }))["cars"][enemy_player["selected_car"]]
+                                }))["cars"][enemy_player["selected_car"]],
+                            "mobile": enemy_username in other_game.__mobile_players
                         }
                         for enemy_username in other_game
                     ]
@@ -866,14 +876,23 @@ class Game:
             await asyncio.gather(*[
                 player_socket.send_json({"id": "GameClosed"})
                 for player_socket in self.__player_sockets.values()
+                if (
+                    player_socket.application_state == WebSocketState.CONNECTED and
+                    player_socket.client_state == WebSocketState.CONNECTED
+                )
             ])
 
             await asyncio.gather(*[
                 player_socket.close()
                 for player_socket in self.__player_sockets.values()
+                if (
+                    player_socket.application_state == WebSocketState.CONNECTED and
+                    player_socket.client_state == WebSocketState.CONNECTED
+                )
             ])
 
             self.__player_sockets = {}
+            self.__mobile_players = set()
 
     def __len__(self) -> int:
         return len(self.__player_sockets)

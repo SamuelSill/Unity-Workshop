@@ -24,7 +24,7 @@ public class PostGameUiActions : NetworkBehaviour
     NetworkManager networkManager;
     void Start()
     {
-        WinnerText.text = winner.ToString() + " Team";
+        WinnerText.text = winner == Teams.Draw ? "Draw!" : winner.ToString() + " Team Won!";
         LeftPresantageText.text = leftTeamPresentage.ToString("F2") + "%";
         RightPresantageText.text = rightTeamPresentage.ToString("F2") + "%";
 
@@ -93,13 +93,15 @@ public class PostGameUiActions : NetworkBehaviour
         {
             winner = Teams.Left;
         }
-        if (right > left)
+        else if (right > left)
         {
             winner = Teams.Right;
         }
-        else {
+        else 
+        {
             winner = Teams.Draw;
         }
+
         leftTeamPresentage = left;
         rightTeamPresentage = right;
     }

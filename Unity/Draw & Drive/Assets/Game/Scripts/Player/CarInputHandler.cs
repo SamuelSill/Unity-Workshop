@@ -11,6 +11,7 @@ public class CarInputHandler : NetworkBehaviour
     Vector2 inputVector;
     public override void OnNetworkSpawn()
     {
+        username = gameObject.GetComponent<PlayerOptions>().UserName;
         topDownCarController = GetComponent<TopDownCarController>();
         if (IsHost)
         {
@@ -34,9 +35,6 @@ public class CarInputHandler : NetworkBehaviour
             {
                 if (mobileControllsQueue.TryDequeue(out ServerSession.MobileControls mobileControls))
                 {
-
-                    Debug.Log("mobileControls in user direction: " + mobileControls.direction);
-                    Debug.Log("mobileControls in user drive: " + mobileControls.drive);
                     if (mobileControls.drive.Equals("forward"))
                     {
                         inputVector.y = 1;

@@ -39,9 +39,7 @@
        }
       .rightPedal{
         background-image: url("Images/pedal.png");
-     
        }
-
 
        .stairingWheel{
         background-image: url("Images/steeringWheel.png");
@@ -63,29 +61,6 @@
     <div class="stairingWheel"></div>
     <div  id="pedal"  class="rightPedal"></div>
   </div>
-<!-- 
-    <img src="Images/reverse.png" id="reverse" style="position: absolute;
-    max-width: 20%;
-    height: auto;
-    top: 50%;
-    left: 10%;
-    margin-top: -50px;
-    margin-left: -50px;">
-    <img src="Images/steeringWheel.png" style="position: absolute;
-    max-width: 30%;
-    height: auto;
-    top: 50%;
-    left: 35%;
-    margin-top: -50px;
-    margin-left: -50px; " >
-    <img src="Images/pedal.png" id="pedal" style="position: absolute;
-    max-width: 20%;
-    height: auto;
-    top: 50%;
-    left: 70%;
-    margin-top: -50px;
-    margin-left: -50px;"> -->
- 
 
   <script>
 
@@ -122,10 +97,12 @@
     //--------------------Pedal---------------------------------------------------------
     function pedal_press() {
         event.preventDefault();
+        document.getElementById("pedal").style.height = "30%";
         pedal_pressed = true;
     }
     function pedal_release() {
         event.preventDefault();
+        document.getElementById("pedal").style.height = "50%";
         pedal_pressed = false;
     }
     document.getElementById("pedal").addEventListener("touchstart", pedal_press);
@@ -134,10 +111,12 @@
     //--------------------Reverse---------------------------------------------------------
     function reverse_press() {
         event.preventDefault();
+        document.getElementById("reverse").style.height = "30%";
         reverse_pressed = true;
     }
     function reverse_release() {
         event.preventDefault();
+        document.getElementById("reverse").style.height = "50%";
         reverse_pressed = false;
     }
     document.getElementById("reverse").addEventListener("touchstart", reverse_press);

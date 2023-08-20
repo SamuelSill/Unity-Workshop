@@ -27,9 +27,25 @@ public class TopDownCarController : NetworkBehaviour
 
         if (IsOwner)
         {
-            maxSpeed = ServerSession.CurrentCarSpeed;
-            accelerationFactor = ServerSession.CurrentCarSpeed / 2.0f;
-            turnFactor = ServerSession.CurrentCarSteering;
+            if (gameObject.name.Contains("Mobile"))
+            {
+                var username = gameObject.GetComponent<PlayerOptions>().UserName;
+                var player =
+                    ServerSession.LobbyPlayers.ContainsKey(username) ?
+                    ServerSession.LobbyPlayers[username] :
+                    ServerSession.EnemyLobbyPlayers[username];
+
+                var matchingPlayerCar = ServerSession.GameCars.Find(car => car.id.Equals(player.selected_car.id));
+                maxSpeed = matchingPlayerCar.speed + player.selected_car.upgrades.speed;
+                accelerationFactor = maxSpeed / 2.0f;
+                turnFactor = matchingPlayerCar.steering + player.selected_car.upgrades.steering;
+            }
+            else
+            {
+                maxSpeed = ServerSession.CurrentCarSpeed;
+                accelerationFactor = maxSpeed / 2.0f;
+                turnFactor = ServerSession.CurrentCarSteering;
+            }
         }
     }
     void FixedUpdate()

@@ -46,11 +46,27 @@ public class PlayerCustomisation : NetworkBehaviour
         AdjustSize();
         if (IsOwner)
         {
-            InformServerOfCarSkinServerRpc(ServerSession.CurrentCar.id, ServerSession.CurrentSkin, OwnerClientId);
+            if (gameObject.name.Contains("Mobile"))
+            {
+                var username = gameObject.GetComponent<PlayerOptions>().UserName;
+                var player =
+                    ServerSession.LobbyPlayers.ContainsKey(username) ?
+                    ServerSession.LobbyPlayers[username] :
+                    ServerSession.EnemyLobbyPlayers[username];
+                InformServerOfCarSkinServerRpc(
+                    player.selected_car.id,
+                    player.selected_car.skins[player.selected_car.selected_skin],
+                    NetworkObjectId
+                );
+            }
+            else
+            {
+                InformServerOfCarSkinServerRpc(ServerSession.CurrentCar.id, ServerSession.CurrentSkin, NetworkObjectId);
+            }
         }
         else
         {
-            GetCarSkinOfObjectServerRpc(OwnerClientId);
+            GetCarSkinOfObjectServerRpc(NetworkObjectId);
         }
 
         playerModules = transform.Find("PlayerModule").GetComponentsInChildren<SpriteRenderer>();
@@ -58,19 +74,19 @@ public class PlayerCustomisation : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void InformServerOfCarSkinServerRpc(string carID, string skinID, ulong clientID)
+    private void InformServerOfCarSkinServerRpc(string carID, string skinID, ulong networkId)
     {
-        clientSkins.Add(clientID, Tuple.Create(carID, skinID));
+        clientSkins.Add(networkId, Tuple.Create(carID, skinID));
         //Debug.Log("ServerRPC: " + carID + " " + skinID);
         UpdateSkinsClientRpc(carID, skinID);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void GetCarSkinOfObjectServerRpc(ulong clientID)
+    private void GetCarSkinOfObjectServerRpc(ulong networkId)
     {
-        if (clientSkins.ContainsKey(clientID))
+        if (clientSkins.ContainsKey(networkId))
         {
-            UpdateSkinsClientRpc(clientSkins[clientID].Item1, clientSkins[clientID].Item2);
+            UpdateSkinsClientRpc(clientSkins[networkId].Item1, clientSkins[networkId].Item2);
         }
     }
 
