@@ -36,6 +36,7 @@ public class MobileNetworkManager : NetworkBehaviour
             //NetworkManegerUI.AddUserToMobileUsers(userName);
 
             GameObject mobilePlayer = Instantiate(clientPrefab);
+            mobilePlayer.GetComponent<PlayerOptions>().UserName = userName;
             mobilePlayer.GetComponent<NetworkObject>().Spawn();
         }
     }
@@ -51,6 +52,7 @@ public class MobileNetworkManager : NetworkBehaviour
     private void AddMobileUseServerRpc(string username)
     {
         GameObject mobilePlayer = Instantiate(clientPrefab);
+        mobilePlayer.GetComponent<PlayerOptions>().UserName = username;
         mobilePlayer.GetComponent<NetworkObject>().Spawn();
     }
 

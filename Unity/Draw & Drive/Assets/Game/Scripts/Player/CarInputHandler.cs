@@ -6,6 +6,7 @@ using Unity.Netcode;
 
 public class CarInputHandler : NetworkBehaviour
 {
+    string username;
     TopDownCarController topDownCarController;
     Vector2 inputVector;
     public override void OnNetworkSpawn()
@@ -26,15 +27,16 @@ public class CarInputHandler : NetworkBehaviour
     {
         //if (ServerSession.PlayerMobileControls.TryGetValue(ServerSession.Username, out Queue<ServerSession.MobileControls> mobileControllsQueue)) {
         if (IsHost && gameObject.name.Contains("Mobile")) {
-            string name = NetworkManegerUI.GetCurrentMobileUser();
+            string name = username;
+
             //Debug.Log("mobileControls user name : " + name);//+ ", number of users : " + NetworkManegerUI.mobileUserUsername.Count);
             if (ServerSession.PlayerMobileControls.TryGetValue(name, out Queue<ServerSession.MobileControls> mobileControllsQueue))
             {
                 if (mobileControllsQueue.TryDequeue(out ServerSession.MobileControls mobileControls))
                 {
 
-                    //Debug.Log("mobileControls Z: " + mobileControls.gyro.z);
-                    //Debug.Log("mobileControls drive: " + mobileControls.drive);
+                    Debug.Log("mobileControls in user direction: " + mobileControls.direction);
+                    Debug.Log("mobileControls in user drive: " + mobileControls.drive);
                     if (mobileControls.drive.Equals("forward"))
                     {
                         inputVector.y = 1;
