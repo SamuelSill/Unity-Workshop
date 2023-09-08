@@ -1900,11 +1900,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -4217036423390808760, guid: 05a897cf848bc814384a00a22f7aa544, type: 3}
       propertyPath: minutes
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: -4217036423390808760, guid: 05a897cf848bc814384a00a22f7aa544, type: 3}
       propertyPath: seconds
-      value: 30
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -4217036423390808760, guid: 05a897cf848bc814384a00a22f7aa544, type: 3}
       propertyPath: hoursDisplay
@@ -1912,7 +1912,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -4217036423390808760, guid: 05a897cf848bc814384a00a22f7aa544, type: 3}
       propertyPath: timeRemaining
-      value: 30
+      value: 120
       objectReference: {fileID: 0}
     - target: {fileID: -4217036423390808760, guid: 05a897cf848bc814384a00a22f7aa544, type: 3}
       propertyPath: startAtRuntime
