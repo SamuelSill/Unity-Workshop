@@ -38,7 +38,7 @@ public class GalleryPanel : MonoBehaviour
             new Vector2(0.5f, 0.5f)
         );
 
-        newObject.GetComponentInChildren<TMP_Text>().text = painting.name + " " + painting.difficulty.ToString();
+        newObject.GetComponentInChildren<TMP_Text>().text = painting.name;
     }
 
     public void OnSubmit()

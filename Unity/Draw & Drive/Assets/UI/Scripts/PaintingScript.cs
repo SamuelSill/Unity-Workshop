@@ -21,7 +21,7 @@ public class PaintingScript : MonoBehaviour
 
     public void DeletePainting()
     {
-        ServerSession.DeletePainting(paintingName.text.Substring(0, paintingName.text.LastIndexOf(' ')), 
+        ServerSession.DeletePainting(paintingName.text, 
                                      () => Destroy(gameObject));
     }
 }

@@ -92,12 +92,6 @@ def car(car_id: str) -> Optional[dict[str, ...]]:
     })
 
 
-def generate_difficulty(_: bytes) -> float:
-    from random import random
-    # TODO: Difficulty Algorithm and Machine Learning
-
-    return random()
-
 # endregion
 
 
@@ -284,6 +278,10 @@ def process_image(painting_data: bytes, shape: list[int], file_type: str) -> byt
             # Convert black to blue and white to yellow
             if r == g == b == 0:
                 divided_img[image_row][image_column][2] = 255
+            if r == g == b == 127:
+                divided_img[image_row][image_column][0] = 0
+                divided_img[image_row][image_column][1] = 127
+                divided_img[image_row][image_column][2] = 0
             if r == g == b == 255:
                 divided_img[image_row][image_column][2] = 0
 
@@ -343,12 +341,10 @@ def post_paintings(username: str,
         return "Painting Already Exists!"
 
     processed_image: bytes = process_image(bytes(new_painting.data), new_painting.shape, new_painting.fileType)
-    generated_difficulty: float = generate_difficulty(processed_image)
     painting: dict = {
         "name": new_painting.name,
         "data": grid_fs.put(processed_image),
-        "description": new_painting.description,
-        "difficulty": float(f"{generated_difficulty:.2f}")
+        "description": new_painting.description
     }
 
     players_collection.update_one({"username": username}, {
